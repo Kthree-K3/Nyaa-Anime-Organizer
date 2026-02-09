@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyaa Anime Organizer</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+
+    <header class="main-header">
+        <div class="container">
+            <div class="header-top">
+                <h1><i class="fas fa-box-open"></i> Nyaa Anime Organizer</h1>
+                <div id="status-badge" class="status-badge">Ready</div>
+            </div>
+            
+            <div class="controls">
+                <div class="filter-group">
+                    <div class="select-wrapper">
+                        <select id="dateRange">
+                            <option value="1" selected>Last 24 hours</option>
+                            <option value="2">Last 2 days</option>
+                            <option value="3">Last 3 days</option>
+                        </select>
+                    </div>
+                    <button id="btnScan" class="btn-primary">
+                        <i class="fas fa-sync-alt" id="scan-icon"></i> 
+                        <span id="btnText">Start scanning</span>
+                    </button>
+                </div>
+
+               <!-- بخش جستجو در Header -->
+<div class="search-wrapper ltr-content">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" id="searchInput" placeholder="Search anime name..." disabled>
+    <!-- دکمه پاک کردن جستجو -->
+    <i class="fas fa-times-circle clear-icon" id="clearSearch" style="display: none;"></i>
+</div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- بخش لاگ -->
+        <section class="log-section">
+            <div class="log-window">
+                <div class="log-header">
+                    <span><i class="fas fa-terminal"></i> Activity Log</span>
+                    <button onclick="document.getElementById('debug-console').innerHTML=''"><i class="fas fa-eraser"></i> Clear</button>
+                </div>
+                <div id="debug-console" class="log-content"></div>
+            </div>
+        </section>
+
+        <!-- محل نمایش کارت‌ها -->
+        <section id="anime-list" class="anime-grid ltr-content">
+            <!-- محتوا توسط جاوااسکریپت ساخته می‌شود -->
+        </section>
+    </main>
+
+</body>
+</html>

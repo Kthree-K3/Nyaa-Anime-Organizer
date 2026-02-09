@@ -1,0 +1,317 @@
+/* --- Variables & Core --- */
+:root {
+    --bg-color: #0b0f1a;
+    --card-bg: #161e2d;
+    --header-bg: rgba(22, 30, 45, 0.85);
+    --primary: #0ea5e9; /* آبی دکمه Nyaa */
+    --primary-hover: #0284c7;
+    --magnet: #ef4444; /* قرمز دکمه Magnet */
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --log-bg: rgba(0, 0, 0, 0.6);
+    --border: #1e293b;
+}
+
+* {
+    box-sizing: border-box;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding-bottom: 50px;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* --- Header --- */
+.main-header {
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid var(--border);
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-top h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+}
+
+.status-badge {
+    background: #1e293b;
+    color: var(--text-dim);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+/* --- Controls & Search --- */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 20px;
+    align-items: center;
+}
+
+.filter-group { display: flex; gap: 10px; }
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.select-wrapper select {
+    background: #1e293b;
+    color: white;
+    border: 1px solid var(--border);
+    padding: 10px 15px;
+    border-radius: 10px;
+    outline: none;
+}
+
+.search-wrapper { position: relative; flex: 1; max-width: 350px; }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+.search-wrapper input {
+    width: 100%;
+    background: #1e293b;
+    border: 1px solid var(--border);
+    color: white;
+    padding: 11px 12px 11px 38px;
+    border-radius: 10px;
+    outline: none;
+}
+
+/* --- Activity Log --- */
+.log-section { margin: 20px 0; }
+.log-window { background: var(--log-bg); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+.log-header { 
+    background: #1e293b; padding: 8px 15px; display: flex; 
+    justify-content: space-between; font-size: 0.75rem; color: var(--text-dim);
+    direction: ltr;
+}
+.log-header button { background: none; border: none; color: #f87171; cursor: pointer; font-weight: bold; }
+
+.log-content {
+    height: 110px; padding: 12px; font-family: 'Consolas', monospace;
+    font-size: 0.8rem; overflow-y: auto; direction: ltr; text-align: left;
+}
+
+/* --- Anime Cards --- */
+.ltr-content { direction: ltr; text-align: left; }
+.anime-card {
+    background: var(--card-bg); border-radius: 12px; margin-bottom: 12px;
+    border: 1px solid var(--border); overflow: hidden;
+}
+.anime-card.hidden { display: none; }
+.anime-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.anime-header:hover { background: rgba(30, 41, 59, 0.5); }
+.anime-title { font-weight: 600; font-size: 1.05rem; }
+.badge { background: rgba(14, 165, 233, 0.15); color: var(--primary); padding: 3px 12px; border-radius: 8px; font-size: 0.75rem; }
+
+/* --- Episodes & Buttons (اصلاح شده) --- */
+.episodes-list { display: none; background: rgba(15, 23, 42, 0.4); border-top: 1px solid var(--border); }
+.episode-item { padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(30, 41, 59, 0.3); }
+.ep-info { flex: 1; min-width: 0; padding-right: 20px; }
+.ep-raw-title { display: block; font-size: 0.85rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ep-meta {
+    font-size: 0.70rem; 
+    color: var(--text-main); 
+    margin-top: 5px;
+    font-weight: bold; 
+}
+
+.ep-actions { display: flex; gap: 8px; }
+
+/* استایل مشترک دکمه‌ها */
+.btn-link, .btn-magnet {
+    padding: 6px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    background: rgba(30, 41, 59, 0.5); /* پس‌زمینه یکسان */
+}
+
+/* دکمه Nyaa (آبی) */
+.btn-link {
+    color: var(--primary);
+    border: 1px solid var(--primary);
+}
+.btn-link:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* دکمه Magnet (قرمز - دقیقاً مشابه استایل آبی) */
+.btn-magnet {
+    color: var(--magnet);
+    border: 1px solid var(--magnet);
+}
+.btn-magnet:hover {
+    background: var(--magnet);
+    color: white;
+}
+
+/* --- Utilities --- */
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinning { animation: spin 1s linear infinite; }
+
+/* Mobile */
+@media (max-width: 768px) {
+    .controls { flex-direction: column; align-items: stretch; }
+    .search-wrapper { max-width: 100%; order: -1; }
+    .anime-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .episode-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .ep-info { padding-right: 0; width: 100%; }
+    .ep-actions { width: 100%; justify-content: flex-end; }
+    .ep-actions > a { flex: 1; justify-content: center; }
+}
+
+.search-wrapper { 
+    position: relative; 
+    flex: 1; 
+    max-width: 350px; 
+}
+
+.clear-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 1.1rem;
+    z-index: 5;
+}
+
+.clear-icon:hover {
+    color: var(--error);
+}
+
+
+.search-wrapper input {
+    padding-right: 35px; 
+}
+
+
+
+.sort-bar {
+    background: rgba(15, 23, 42, 0.9);
+    padding: 10px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.sort-btn {
+    background: #1e293b;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.sort-btn:hover {
+    border-color: var(--primary);
+    color: var(--text-main);
+}
+
+.sort-btn.active {
+    background: rgba(14, 165, 233, 0.1);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.sort-btn i.dir-icon {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+/* نشان Trusted */
+.badge-trusted {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border: 1px solid #4ade80;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+
+/* وضعیت سبز - Trusted */
+.episode-item.is-trusted {
+    border-left: 4px solid #22c55e;
+    background: rgba(34, 197, 94, 0.05);
+}
+.episode-item.is-trusted:hover {
+    background: rgba(34, 197, 94, 0.1);
+}
+
+/* وضعیت قرمز - Remake */
+.episode-item.is-remake {
+    border-left: 4px solid #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+.episode-item.is-remake:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* مشخصات بولد شده */
+.ep-meta b {
+    color: var(--text-main);
+    font-weight: 700;
+}
