@@ -1,4 +1,3 @@
-// ================= تنظیمات اصلی =================
 const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
 const TARGET_DOMAIN = "https://nyaa.land"; 
 const SIMILARITY_THRESHOLD = 0.5; 
@@ -12,7 +11,6 @@ const grid = document.getElementById('anime-list');
 const searchInput = document.getElementById('searchInput');
 const clearSearch = document.getElementById('clearSearch');
 const debugConsole = document.getElementById('debug-console');
-const statusBadge = document.getElementById('status-badge');
 const langFilter = document.getElementById('langFilter');
 
 function log(msg, type = 'info') {
@@ -22,16 +20,12 @@ function log(msg, type = 'info') {
     div.innerHTML = `> [${new Date().toLocaleTimeString()}] ${msg}`;
     debugConsole.appendChild(div);
     debugConsole.scrollTop = debugConsole.scrollHeight;
-    statusBadge.innerText = msg;
 }
-
-// ================= بخش جستجو =================
 
 searchInput.oninput = function() {
     const query = this.value.toLowerCase();
     clearSearch.style.display = query ? 'block' : 'none';
-    const cards = document.querySelectorAll('.anime-card');
-    cards.forEach(card => {
+    document.querySelectorAll('.anime-card').forEach(card => {
         const title = card.getAttribute('data-title').toLowerCase();
         card.style.display = title.includes(query) ? 'block' : 'none';
     });
@@ -44,45 +38,24 @@ clearSearch.onclick = function() {
     searchInput.focus();
 };
 
-// ================= الگوریتم نام پوشه (فقط حذف کروشه‌ها) =================
-
 function cleanTitle(raw) {
     let name = raw.trim();
-
-    // ۱. فقط و فقط حذف تمام محتوای داخل کروشه []
-    name = name.replace(/\[.*?\]/g, '');
-
-    // ۲. تبدیل تمام نقطه‌ها به فاصله (به جز پسوند فایل)
+    name = name.replace(/\[.*?\]/g, ''); // فقط حذف []
     name = name.replace(/\.(?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
-    /**
-     * ۳. پیدا کردن اولین نشانگر توقف (Stop Markers)
-     */
     const stopMarkers = [
-        /\s-\s\d+/i,            // " - 06"
-        /\sS\d+E\d+/i,          // " S02E06"
-        /\sS\d+\s?-\s?\d+/i,    // " S2 - 06"
-        /\s\d+(st|nd|rd|th)\sSeason/i, // " 2nd Season"
-        /\sSeason\s\d+/i,       // " Season 02"
-        /\sEp\s?\d+/i,          // " Ep 01"
-        /\s\d{2,}\s/            // عدد دو رقمی مجزا
+        /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
+        /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
+        /\sEp\s?\d+/i, /\s\d{2,}\s/
     ];
 
     let firstMatchIndex = name.length;
     stopMarkers.forEach(pattern => {
         const match = name.match(pattern);
-        if (match && match.index < firstMatchIndex) {
-            firstMatchIndex = match.index;
-        }
+        if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
     });
 
-    // برش نام قبل از اولین مارکر
-    let cleaned = name.substring(0, firstMatchIndex).trim();
-
-    // ۴. تمیزکاری نهایی کاراکترهای مزاحم در انتهای نام
-    cleaned = cleaned.replace(/[:\-~]+$/, '').trim();
-
-    return cleaned || "Unknown Anime";
+    return name.substring(0, firstMatchIndex).trim().replace(/[:\-~]+$/, '').trim() || "Unknown";
 }
 
 function sizeToBytes(sizeStr) {
@@ -105,8 +78,6 @@ function getSimilarity(s1, s2) {
     return (2 * inter) / (p1.size + p2.size);
 }
 
-// ================= عملیات اسکن اصلی =================
-
 btnScan.onclick = startScanner;
 
 async function startScanner() {
@@ -118,7 +89,8 @@ async function startScanner() {
     btnIcon.classList.add('spinning');
     btnText.innerText = "Scanning...";
     grid.innerHTML = '';
-    log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
+    
+log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
 
     let collectedData = [];
     const cutoffDate = new Date();
@@ -130,9 +102,7 @@ async function startScanner() {
     try {
         while (keepScanning) {
             log(`Fetching page ${page}...`);
-            // آدرس اختصاصی انیمه
             const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_0&p=${page}`);
-            
             if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
             const htmlText = await response.text();
             const parser = new DOMParser();
@@ -157,7 +127,6 @@ async function startScanner() {
                 const linkEl = links.item(links.length - 1);
                 const rawTitle = linkEl.innerText.trim();
 
-                // فیلتر زبان
                 if (filterEng && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
                     continue;
                 }
@@ -187,6 +156,7 @@ async function startScanner() {
 
         organizeGroups(collectedData);
         renderUI();
+        log("Task Complete.", 'success');
         searchInput.disabled = false;
     } catch (e) {
         log(`Error: ${e.message}`, 'error');
@@ -197,34 +167,20 @@ async function startScanner() {
     }
 }
 
-// ================= گروه‌بندی و سورت دوطرفه =================
-
 function organizeGroups(data) {
     allGroups = [];
     data.forEach(item => {
         let g = allGroups.find(x => getSimilarity(x.name, item.cleanName) > SIMILARITY_THRESHOLD);
-        if (g) {
-            g.items.push(item);
-        } else {
-            allGroups.push({ 
-                name: item.cleanName, 
-                items: [item],
-                currentSort: 'date',
-                isAsc: false 
-            });
-        }
+        if (g) g.items.push(item);
+        else allGroups.push({ name: item.cleanName, items: [item], currentSort: 'date', isAsc: false });
     });
     allGroups.sort((a,b) => b.items[0].fullDate - a.items[0].fullDate);
 }
 
 window.sortItems = function(groupIndex, criteria) {
     const group = allGroups[groupIndex];
-    if (group.currentSort === criteria) {
-        group.isAsc = !group.isAsc;
-    } else {
-        group.currentSort = criteria;
-        group.isAsc = (criteria === 'name'); 
-    }
+    if (group.currentSort === criteria) group.isAsc = !group.isAsc;
+    else { group.currentSort = criteria; group.isAsc = (criteria === 'name'); }
 
     const asc = group.isAsc ? 1 : -1;
     group.items.sort((a, b) => {
@@ -233,15 +189,13 @@ window.sortItems = function(groupIndex, criteria) {
         if (criteria === 'name') return a.rawTitle.localeCompare(b.rawTitle) * asc;
         return 0;
     });
-
     document.getElementById(`ep-list-${groupIndex}`).innerHTML = renderEpisodeItems(group.items);
     updateSortBarUI(groupIndex);
 };
 
 function updateSortBarUI(idx) {
     const group = allGroups[idx];
-    const btns = document.querySelectorAll(`#ep-${idx} .sort-btn`);
-    btns.forEach(btn => {
+    document.querySelectorAll(`#ep-${idx} .sort-btn`).forEach(btn => {
         const criteria = btn.getAttribute('data-sort');
         const icon = btn.querySelector('.dir-icon');
         if (criteria === group.currentSort) {
@@ -265,8 +219,8 @@ function renderEpisodeItems(items) {
                 </div>
             </div>
             <div class="ep-actions">
-                ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
+                ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet"><i class="fas fa-magnet"></i></a>` : ''}
+                <a href="${item.link}" target="_blank" class="btn-link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
             </div>
         </div>
     `).join('');
@@ -289,19 +243,11 @@ function renderUI() {
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
                     <span style="margin-right:5px">Sort:</span>
-                    <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">
-                        Date <i class="fas fa-sort-down dir-icon"></i>
-                    </button>
-                    <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">
-                        Size <i class="fas fa-sort dir-icon"></i>
-                    </button>
-                    <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">
-                        Name <i class="fas fa-sort dir-icon"></i>
-                    </button>
+                    <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
+                    <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
+                    <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">Name <i class="fas fa-sort dir-icon"></i></button>
                 </div>
-                <div id="ep-list-${i}">
-                    ${renderEpisodeItems(g.items)}
-                </div>
+                <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
         `;
         grid.appendChild(card);
@@ -310,6 +256,5 @@ function renderUI() {
 
 function toggleCard(id) {
     const el = document.getElementById(`ep-${id}`);
-    const isVisible = window.getComputedStyle(el).display === 'block';
-    el.style.display = isVisible ? 'none' : 'block';
+    el.style.display = (window.getComputedStyle(el).display === 'block') ? 'none' : 'block';
 }
