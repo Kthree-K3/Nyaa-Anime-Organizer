@@ -156,9 +156,11 @@ async function startScanner() {
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
                     sizeBytes: sizeToBytes(tds[3].innerText.trim()),
-                    date: tds[4].innerText.trim(),
+                    date: new Date(timestamp * 1000).toLocaleString('sv').replace('T', ' ').substring(0, 16),
                     fullDate: itemDate,
-                    status: status 
+                    status: status,
+                    seeds: tds[5].innerText.trim(), // ستون سیدر
+                    peers: tds[6].innerText.trim()  // ستون پیرز
                 });
                 count++;
             }
@@ -234,8 +236,14 @@ function renderEpisodeItems(items) {
                 </div>
             </div>
             <div class="ep-actions">
-                ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
+                 <span style="color:#22c55e; font-weight:bold; font-size:0.85rem; margin-right:5px">
+                   <i class="fas fa-arrow-up"></i> ${item.seeds}
+                 </span>
+                 <span style="color:#ef4444; font-weight:bold; font-size:0.85rem; margin-right:10px">
+                     <i class="fas fa-arrow-down"></i> ${item.peers}
+                 </span>
+                 ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
             </div>
         </div>
     `).join('');
