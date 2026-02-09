@@ -13,6 +13,7 @@ const searchInput = document.getElementById('searchInput');
 const clearSearch = document.getElementById('clearSearch');
 const debugConsole = document.getElementById('debug-console');
 const statusBadge = document.getElementById('status-badge');
+const langFilter = document.getElementById('langFilter');
 
 function log(msg, type = 'info') {
     const colors = { error: '#f87171', success: '#4ade80', info: '#94a3b8' };
@@ -43,26 +44,45 @@ clearSearch.onclick = function() {
     searchInput.focus();
 };
 
-// ================= الگوریتم‌های کمکی =================
+// ================= الگوریتم نام پوشه (فقط حذف کروشه‌ها) =================
 
 function cleanTitle(raw) {
     let name = raw.trim();
-    if (name.startsWith('[')) name = name.replace(/^\[.*?\]\s*/, '');
+
+    // ۱. فقط و فقط حذف تمام محتوای داخل کروشه []
+    name = name.replace(/\[.*?\]/g, '');
+
+    // ۲. تبدیل تمام نقطه‌ها به فاصله (به جز پسوند فایل)
     name = name.replace(/\.(?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
+    /**
+     * ۳. پیدا کردن اولین نشانگر توقف (Stop Markers)
+     */
     const stopMarkers = [
-        /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
-        /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
-        /\sEp\s?\d+/i, /\s\d{2,}\s/
+        /\s-\s\d+/i,            // " - 06"
+        /\sS\d+E\d+/i,          // " S02E06"
+        /\sS\d+\s?-\s?\d+/i,    // " S2 - 06"
+        /\s\d+(st|nd|rd|th)\sSeason/i, // " 2nd Season"
+        /\sSeason\s\d+/i,       // " Season 02"
+        /\sEp\s?\d+/i,          // " Ep 01"
+        /\s\d{2,}\s/            // عدد دو رقمی مجزا
     ];
 
     let firstMatchIndex = name.length;
     stopMarkers.forEach(pattern => {
         const match = name.match(pattern);
-        if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
+        if (match && match.index < firstMatchIndex) {
+            firstMatchIndex = match.index;
+        }
     });
 
-    return name.substring(0, firstMatchIndex).trim().replace(/[:\-~]+$/, '').trim() || "Unknown";
+    // برش نام قبل از اولین مارکر
+    let cleaned = name.substring(0, firstMatchIndex).trim();
+
+    // ۴. تمیزکاری نهایی کاراکترهای مزاحم در انتهای نام
+    cleaned = cleaned.replace(/[:\-~]+$/, '').trim();
+
+    return cleaned || "Unknown Anime";
 }
 
 function sizeToBytes(sizeStr) {
@@ -91,12 +111,14 @@ btnScan.onclick = startScanner;
 
 async function startScanner() {
     const days = parseInt(document.getElementById('dateRange').value);
+    const filterEng = langFilter.checked;
+
     btnScan.disabled = true;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
     btnText.innerText = "Scanning...";
     grid.innerHTML = '';
-    log("Initializing scan...", 'info');
+    log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
 
     let collectedData = [];
     const cutoffDate = new Date();
@@ -108,7 +130,9 @@ async function startScanner() {
     try {
         while (keepScanning) {
             log(`Fetching page ${page}...`);
-            const response = await fetch(`${MY_WORKER_URL}/?p=${page}`);
+            // آدرس اختصاصی انیمه
+            const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_0&p=${page}`);
+            
             if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
             const htmlText = await response.text();
             const parser = new DOMParser();
@@ -129,16 +153,22 @@ async function startScanner() {
                     continue;
                 }
 
-                const linkEl = tds[1].querySelectorAll('a:not(.comments)').item(tds[1].querySelectorAll('a:not(.comments)').length - 1);
-                
-                // تعیین وضعیت رنگی (Trusted / Remake)
+                const links = tds[1].querySelectorAll('a:not(.comments)');
+                const linkEl = links.item(links.length - 1);
+                const rawTitle = linkEl.innerText.trim();
+
+                // فیلتر زبان
+                if (filterEng && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
+                    continue;
+                }
+
                 let status = 'normal';
                 if (tr.classList.contains('success')) status = 'trusted';
                 if (tr.classList.contains('danger')) status = 'remake';
 
                 collectedData.push({
-                    rawTitle: linkEl.innerText.trim(),
-                    cleanName: cleanTitle(linkEl.innerText.trim()),
+                    rawTitle: rawTitle,
+                    cleanName: cleanTitle(rawTitle),
                     link: TARGET_DOMAIN + linkEl.getAttribute('href'),
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
@@ -223,8 +253,6 @@ function updateSortBarUI(idx) {
         }
     });
 }
-
-// ================= رندر کردن خروجی =================
 
 function renderEpisodeItems(items) {
     return items.map(item => `

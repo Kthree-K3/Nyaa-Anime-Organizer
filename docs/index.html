@@ -32,19 +32,25 @@
                     </button>
                 </div>
 
-               <!-- بخش جستجو در Header -->
-<div class="search-wrapper ltr-content">
-    <i class="fas fa-search search-icon"></i>
-    <input type="text" id="searchInput" placeholder="Search anime name..." disabled>
-    <!-- دکمه پاک کردن جستجو -->
-    <i class="fas fa-times-circle clear-icon" id="clearSearch" style="display: none;"></i>
-</div>
+                <!-- سوئیچ فیلتر زبان -->
+                <div class="toggle-wrapper">
+                    <label class="switch">
+                        <input type="checkbox" id="langFilter" checked>
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="toggle-label">English names only</span>
+                </div>
+
+                <div class="search-wrapper ltr-content">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search anime name..." disabled>
+                    <i class="fas fa-times-circle clear-icon" id="clearSearch" style="display: none;"></i>
+                </div>
             </div>
         </div>
     </header>
 
     <main class="container">
-        <!-- بخش لاگ -->
         <section class="log-section">
             <div class="log-window">
                 <div class="log-header">
@@ -55,7 +61,6 @@
             </div>
         </section>
 
-        <!-- محل نمایش کارت‌ها -->
         <section id="anime-list" class="anime-grid ltr-content">
             <!-- محتوا توسط جاوااسکریپت ساخته می‌شود -->
         </section>
