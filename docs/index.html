@@ -20,9 +20,10 @@
                 <div class="filter-group">
                     <div class="select-wrapper">
                         <select id="dateRange">
-                            <option value="1" selected>Last 24 hours</option>
-                            <option value="2">Last 2 days</option>
-                            <option value="3">Last 3 days</option>
+                            <option value="24h" selected>Last 24 hours</option>
+                            <option value="today">Today</option>
+                            <option value="2d">Last 2 days</option>
+                            <option value="3d">Last 3 days</option>
                         </select>
                     </div>
                     <button id="btnScan" class="btn-primary">
@@ -31,7 +32,6 @@
                     </button>
                 </div>
 
-                <!-- سوئیچ فیلتر زبان با استایل اصلاح شده -->
                 <div class="toggle-wrapper">
                     <label class="switch">
                         <input type="checkbox" id="langFilter" checked>

@@ -1,3 +1,4 @@
+// ================= تنظیمات اصلی =================
 const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
 const TARGET_DOMAIN = "https://nyaa.land"; 
 const SIMILARITY_THRESHOLD = 0.5; 
@@ -22,6 +23,7 @@ function log(msg, type = 'info') {
     debugConsole.scrollTop = debugConsole.scrollHeight;
 }
 
+// ================= بخش جستجو =================
 searchInput.oninput = function() {
     const query = this.value.toLowerCase();
     clearSearch.style.display = query ? 'block' : 'none';
@@ -38,9 +40,10 @@ clearSearch.onclick = function() {
     searchInput.focus();
 };
 
+// ================= الگوریتم نام پوشه =================
 function cleanTitle(raw) {
     let name = raw.trim();
-    name = name.replace(/\[.*?\]/g, ''); // فقط حذف []
+    name = name.replace(/\[.*?\]/g, '');
     name = name.replace(/\.(?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
     const stopMarkers = [
@@ -78,11 +81,12 @@ function getSimilarity(s1, s2) {
     return (2 * inter) / (p1.size + p2.size);
 }
 
+// ================= عملیات اسکن اصلی =================
 btnScan.onclick = startScanner;
 
 async function startScanner() {
-    const days = parseInt(document.getElementById('dateRange').value);
-    const filterEng = langFilter.checked;
+    const rangeMode = document.getElementById('dateRange').value;
+    const isEnglishOnly = langFilter.checked;
 
     btnScan.disabled = true;
     searchInput.disabled = true;
@@ -90,12 +94,22 @@ async function startScanner() {
     btnText.innerText = "Scanning...";
     grid.innerHTML = '';
     
-log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
+    const cutoffDate = new Date();
+    if (rangeMode === '24h') {
+        cutoffDate.setHours(cutoffDate.getHours() - 24);
+    } else if (rangeMode === 'today') {
+        cutoffDate.setHours(0, 0, 0, 0);
+    } else if (rangeMode === '2d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 1);
+        cutoffDate.setHours(0, 0, 0, 0);
+    } else if (rangeMode === '3d') {
+        cutoffDate.setDate(cutoffDate.getDate() - 2);
+        cutoffDate.setHours(0, 0, 0, 0);
+    }
+
+    log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
     let collectedData = [];
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    
     let page = 1;
     let keepScanning = true;
 
@@ -127,7 +141,7 @@ log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
                 const linkEl = links.item(links.length - 1);
                 const rawTitle = linkEl.innerText.trim();
 
-                if (filterEng && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
+                if (isEnglishOnly && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
                     continue;
                 }
 
@@ -136,7 +150,7 @@ log(`Starting scan (Category: Anime, EngOnly: ${filterEng})...`, 'info');
                 if (tr.classList.contains('danger')) status = 'remake';
 
                 collectedData.push({
-                    rawTitle: rawTitle,
+                    rawTitle,
                     cleanName: cleanTitle(rawTitle),
                     link: TARGET_DOMAIN + linkEl.getAttribute('href'),
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
@@ -197,13 +211,14 @@ function updateSortBarUI(idx) {
     const group = allGroups[idx];
     document.querySelectorAll(`#ep-${idx} .sort-btn`).forEach(btn => {
         const criteria = btn.getAttribute('data-sort');
+        if (!criteria) return; // نادیده گرفتن دکمه گوگل
         const icon = btn.querySelector('.dir-icon');
         if (criteria === group.currentSort) {
             btn.classList.add('active');
-            icon.className = group.isAsc ? 'fas fa-sort-up dir-icon' : 'fas fa-sort-down dir-icon';
+            if(icon) icon.className = group.isAsc ? 'fas fa-sort-up dir-icon' : 'fas fa-sort-down dir-icon';
         } else {
             btn.classList.remove('active');
-            icon.className = 'fas fa-sort dir-icon';
+            if(icon) icon.className = 'fas fa-sort dir-icon';
         }
     });
 }
@@ -219,8 +234,8 @@ function renderEpisodeItems(items) {
                 </div>
             </div>
             <div class="ep-actions">
-                ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet"><i class="fas fa-magnet"></i></a>` : ''}
-                <a href="${item.link}" target="_blank" class="btn-link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
+                ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
+                <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
             </div>
         </div>
     `).join('');
@@ -246,6 +261,8 @@ function renderUI() {
                     <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
                     <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
                     <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">Name <i class="fas fa-sort dir-icon"></i></button>
+                    <!-- دکمه گوگل رنگی شده -->
+                   <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
