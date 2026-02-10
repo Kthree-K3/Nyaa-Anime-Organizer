@@ -46,6 +46,12 @@ function cleanTitle(raw) {
     name = name.replace(/\[.*?\]/g, '');
     name = name.replace(/\.(?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
+      const yearMatch = name.match(/\s\(\d+\)/);
+    if (yearMatch) {
+        // برش رشته از ابتدا تا پایانِ پرانتز بسته
+        name = name.substring(0, yearMatch.index + yearMatch[0].length);
+    }
+
     const stopMarkers = [
         /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
         /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
