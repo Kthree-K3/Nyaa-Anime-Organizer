@@ -265,7 +265,7 @@ function renderUI() {
             </div>
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
-                    <span style="margin-right:5px">Sort:</span>
+                
                     <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
                     <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
                     <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">Name <i class="fas fa-sort dir-icon"></i></button>
