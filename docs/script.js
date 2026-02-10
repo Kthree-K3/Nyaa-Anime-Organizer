@@ -49,7 +49,9 @@ function cleanTitle(raw) {
     const stopMarkers = [
         /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
         /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
-        /\sEp\s?\d+/i, /\s\d{2,}\s/
+        /\sEp\s?\d+/i, /\s\d{2,}\s/,
+        /\sS\d+/i, 
+        /\sE\d+/i   
     ];
 
     let firstMatchIndex = name.length;
