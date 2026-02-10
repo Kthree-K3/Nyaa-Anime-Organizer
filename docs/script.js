@@ -44,7 +44,7 @@ clearSearch.onclick = function() {
 function cleanTitle(raw) {
     let name = raw.trim();
     name = name.replace(/\[.*?\]/g, '');
-    name = name.replace(/\.(?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
+   name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
       const yearMatch = name.match(/\s\(\d+\)/);
     if (yearMatch) {
