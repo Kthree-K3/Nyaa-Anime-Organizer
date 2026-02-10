@@ -32,12 +32,22 @@
                     </button>
                 </div>
 
+                <!-- بخش فیلتر نام انگلیسی -->
                 <div class="toggle-wrapper">
                     <label class="switch">
                         <input type="checkbox" id="langFilter" checked>
                         <span class="slider"></span>
                     </label>
                     <span class="toggle-label">English names only</span>
+                </div>
+
+                <!-- بخش جدید: لیست انیمه‌های من -->
+                <div class="toggle-wrapper">
+                    <label class="switch">
+                        <input type="checkbox" id="myListFilter">
+                        <span class="slider"></span>
+                    </label>
+                    <button id="btnOpenMyList" class="btn-text-only">My Anime List</button>
                 </div>
 
                 <div class="search-wrapper ltr-content">
@@ -64,6 +74,23 @@
             <!-- محتوا توسط جاوااسکریپت ساخته می‌شود -->
         </section>
     </main>
+
+    <!-- پاپ‌آپ (Modal) برای لیست انیمه‌های من -->
+    <div id="myListModal" class="modal">
+        <div class="modal-content ltr-content">
+            <div class="modal-header">
+                <h3>My Anime List</h3>
+                <span class="close-modal" id="btnCloseMyList">&times;</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 10px;">
+                Enter each anime name on a new line. The scanner will only show results matching these names.
+            </p>
+            <textarea id="myListInput" placeholder="One Piece&#10;Bleach&#10;Naruto..."></textarea>
+            <div class="modal-footer">
+                <button id="btnSaveMyList" class="btn-primary">Save List</button>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

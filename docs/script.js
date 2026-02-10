@@ -14,6 +14,14 @@ const clearSearch = document.getElementById('clearSearch');
 const debugConsole = document.getElementById('debug-console');
 const langFilter = document.getElementById('langFilter');
 
+// متغیرهای جدید برای My Anime List
+const btnOpenMyList = document.getElementById('btnOpenMyList');
+const modal = document.getElementById('myListModal');
+const btnCloseMyList = document.getElementById('btnCloseMyList');
+const btnSaveMyList = document.getElementById('btnSaveMyList');
+const myListInput = document.getElementById('myListInput');
+const myListFilter = document.getElementById('myListFilter');
+
 function log(msg, type = 'info') {
     const colors = { error: '#f87171', success: '#4ade80', info: '#94a3b8' };
     const div = document.createElement('div');
@@ -40,15 +48,37 @@ clearSearch.onclick = function() {
     searchInput.focus();
 };
 
+// ================= بخش My Anime List (Popup & Storage) =================
+btnOpenMyList.onclick = function() {
+    const savedList = localStorage.getItem('myAnimeList') || "";
+    myListInput.value = savedList;
+    modal.style.display = "block";
+}
+
+btnCloseMyList.onclick = function() {
+    modal.style.display = "none";
+}
+
+btnSaveMyList.onclick = function() {
+    localStorage.setItem('myAnimeList', myListInput.value);
+    modal.style.display = "none";
+    log("My Anime List saved successfully.", "success");
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+
 // ================= الگوریتم نام پوشه =================
 function cleanTitle(raw) {
     let name = raw.trim();
     name = name.replace(/\[.*?\]/g, '');
-   name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
+    name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
-      const yearMatch = name.match(/\s\(\d+\)/);
+    const yearMatch = name.match(/\s\(\d+\)/);
     if (yearMatch) {
-        // برش رشته از ابتدا تا پایانِ پرانتز بسته
         name = name.substring(0, yearMatch.index + yearMatch[0].length);
     }
 
@@ -95,6 +125,14 @@ btnScan.onclick = startScanner;
 async function startScanner() {
     const rangeMode = document.getElementById('dateRange').value;
     const isEnglishOnly = langFilter.checked;
+    const isMyListEnabled = myListFilter.checked;
+    
+    // دریافت لیست انیمه‌ها از حافظه در صورتی که فیلتر روشن باشد
+    let myAnimeList = [];
+    if (isMyListEnabled) {
+        const stored = localStorage.getItem('myAnimeList') || "";
+        myAnimeList = stored.split('\n').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
+    }
 
     btnScan.disabled = true;
     searchInput.disabled = true;
@@ -148,9 +186,17 @@ async function startScanner() {
                 const links = tds[1].querySelectorAll('a:not(.comments)');
                 const linkEl = links.item(links.length - 1);
                 const rawTitle = linkEl.innerText.trim();
+                const lowerRawTitle = rawTitle.toLowerCase();
 
+                // فیلتر زبان
                 if (isEnglishOnly && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
                     continue;
+                }
+
+                // فیلتر لیست من (جدید)
+                if (isMyListEnabled && myAnimeList.length > 0) {
+                    const matchFound = myAnimeList.some(name => lowerRawTitle.includes(name));
+                    if (!matchFound) continue;
                 }
 
                 let status = 'normal';
@@ -167,13 +213,13 @@ async function startScanner() {
                     date: new Date(timestamp * 1000).toLocaleString('sv').replace('T', ' ').substring(0, 16),
                     fullDate: itemDate,
                     status: status,
-                    seeds: tds[5].innerText.trim(), // ستون سیدر
-                    peers: tds[6].innerText.trim()  // ستون پیرز
+                    seeds: tds[5].innerText.trim(), 
+                    peers: tds[6].innerText.trim()  
                 });
                 count++;
             }
             log(`Page ${page}: Found ${count} items.`, 'success');
-            if (!keepScanning || count === 0) break;
+             if (!keepScanning) break;
             page++;
             await new Promise(r => setTimeout(r, 1200));
         }
@@ -221,7 +267,7 @@ function updateSortBarUI(idx) {
     const group = allGroups[idx];
     document.querySelectorAll(`#ep-${idx} .sort-btn`).forEach(btn => {
         const criteria = btn.getAttribute('data-sort');
-        if (!criteria) return; // نادیده گرفتن دکمه گوگل
+        if (!criteria) return; 
         const icon = btn.querySelector('.dir-icon');
         if (criteria === group.currentSort) {
             btn.classList.add('active');
@@ -277,7 +323,7 @@ function renderUI() {
                     <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
                     <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
                     <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">Name <i class="fas fa-sort dir-icon"></i></button>
-                    <!-- دکمه گوگل رنگی شده -->
+                    
                    <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>

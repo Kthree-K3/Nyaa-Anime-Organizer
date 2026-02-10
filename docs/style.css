@@ -29,7 +29,7 @@ body {
 
 .header-top h1 { margin: 0; font-size: 1.4rem; color: var(--primary); }
 
-.controls { display: flex; justify-content: space-between; gap: 15px; margin-top: 20px; align-items: center; }
+.controls { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 15px; margin-top: 20px; align-items: center; }
 .filter-group { display: flex; gap: 10px; }
 
 .btn-primary {
@@ -52,8 +52,14 @@ body {
 input:checked + .slider { background-color: var(--primary); }
 input:checked + .slider:before { transform: translateX(22px); }
 
+/* --- My List Button --- */
+.btn-text-only {
+    background: none; border: none; color: var(--text-main); font-size: 0.85rem; font-weight: 600; cursor: pointer; padding: 0 5px;
+}
+.btn-text-only:hover { color: var(--primary); }
+
 /* --- Search Box --- */
-.search-wrapper { position: relative; flex: 1; max-width: 350px; }
+.search-wrapper { position: relative; flex: 1; min-width: 250px; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
 .clear-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--magnet); cursor: pointer; font-size: 1.1rem; z-index: 5; }
 .search-wrapper input { width: 100%; background: #1e293b; border: 1px solid var(--border); color: white; padding: 11px 35px 11px 38px; border-radius: 10px; outline: none; }
@@ -96,16 +102,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 .sort-btn:hover { border-color: var(--primary); color: var(--text-main); }
 .sort-btn.active { background: rgba(14, 165, 233, 0.1); color: var(--primary); border-color: var(--primary); }
 
-.google-search-btn {
-    margin-left: auto;
-    color: #4285F4 !important; /* رنگ گوگل */
-    border-color: rgba(66, 133, 244, 0.3) !important;
-}
-.google-search-btn:hover {
-    background: rgba(66, 133, 244, 0.1) !important;
-    border-color: #4285F4 !important;
-}
-
 /* --- Status Colors --- */
 .episode-item.is-trusted { border-left: 4px solid #22c55e; background: rgba(34, 197, 94, 0.05); }
 .episode-item.is-remake { border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05); }
@@ -113,22 +109,29 @@ input:checked + .slider:before { transform: translateX(22px); }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .spinning { animation: spin 1s linear infinite; }
 
+/* --- Modal Styles --- */
+.modal {
+    display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+}
+.modal-content {
+    background-color: var(--card-bg); margin: 10% auto; padding: 20px; border: 1px solid var(--border);
+    width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.modal-header h3 { margin: 0; color: var(--primary); }
+.close-modal { color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+.close-modal:hover { color: white; }
+.modal textarea {
+    width: 100%; height: 200px; background: #0b0f1a; color: white; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px; resize: vertical; font-family: inherit; outline: none;
+}
+.modal-footer { text-align: right; margin-top: 15px; }
+
 @media (max-width: 768px) {
     .controls { flex-direction: column; align-items: stretch; }
     .toggle-wrapper { order: -1; justify-content: center; }
-    .search-wrapper { max-width: 100%; order: -1; }
+    .search-wrapper { min-width: 100%; order: -1; }
     .anime-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .episode-item { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
-
-.google-btn {
-    margin-left: auto !important; 
-    border-color: rgba(255,255,255,0.1) !important;
-    background: rgba(255,255,255,0.05) !important;
-    font-weight: 800 !important;
-}
-.google-btn:hover {
-    background: rgba(255,255,255,0.1) !important;
-    border-color: #4285F4 !important;
-}
-.google-btn i { color: #4285F4; } 
