@@ -162,7 +162,7 @@ async function startScanner() {
     try {
         while (keepScanning) {
             log(`Fetching page ${page}...`);
-            const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_0&p=${page}`);
+            const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
             if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
             const htmlText = await response.text();
             const parser = new DOMParser();
