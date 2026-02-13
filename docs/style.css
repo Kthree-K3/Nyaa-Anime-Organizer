@@ -22,7 +22,7 @@ body {
 
 .container { max-width: 1100px; margin: 0 auto; padding: 0 15px; }
 
-.main-header h1 { text-align: center;}
+.main-header h1 {text-align: center; direction: rtl;}
 
 .main-header {
     background: var(--header-bg); backdrop-filter: blur(12px);
