@@ -124,14 +124,12 @@ function getSimilarity(s1, s2) {
 btnScan.onclick = startScanner;
 
 async function startScanner() {
-    // اگر در حال اسکن بود و دوباره دکمه زده شد -> متوقف کن
     if (isScanning) {
         isScanning = false;
         log("Stopping scan by user...", "error");
         return;
     }
 
-    // شروع اسکن جدید
     isScanning = true;
     const rangeMode = document.getElementById('dateRange').value;
     const isEnglishOnly = langFilter.checked;
@@ -143,13 +141,11 @@ async function startScanner() {
         myAnimeList = stored.split('\n').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
     }
 
-    // تغییر ظاهر دکمه به حالت "توقف"
-    btnScan.disabled = false; // دکمه نباید غیرفعال شود تا بشود روی توقف کلیک کرد
+    btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
-    btnIcon.className = "fas fa-stop spinning"; // تغییر آیکون به توقف
     btnText.innerText = "Stop scanning";
-    btnScan.classList.add('btn-danger'); // تغییر رنگ (اختیاری)
+    btnScan.classList.add('btn-danger');
 
     grid.innerHTML = '';
     
@@ -166,14 +162,12 @@ async function startScanner() {
     let keepScanning = true;
 
     try {
-        while (keepScanning && isScanning) { // شرط اضافه شده: isScanning
+        while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
             const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
             if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
             
             const htmlText = await response.text();
-            
-            // چک کردن دوباره بعد از دریافت پاسخ (شاید کاربر همان لحظه توقف زده باشد)
             if (!isScanning) break;
 
             const parser = new DOMParser();
@@ -226,9 +220,7 @@ async function startScanner() {
                 count++;
             }
             log(`Page ${page}: Found ${count} items.`, 'success');
-            
             if (!keepScanning || !isScanning) break;
-            
             page++;
             await new Promise(r => setTimeout(r, 1200));
         }
@@ -240,11 +232,9 @@ async function startScanner() {
     } catch (e) {
         log(`Error: ${e.message}`, 'error');
     } finally {
-        // بازگرداندن دکمه به حالت اول
         isScanning = false;
         btnScan.disabled = false;
         btnScan.classList.remove('btn-danger');
-        btnIcon.className = "fas fa-sync-alt";
         btnIcon.classList.remove('spinning');
         btnText.innerText = "Start scanning";
     }
