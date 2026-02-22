@@ -322,8 +322,10 @@ function renderUI() {
                 
                     <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
                     <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
-                    <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">Name <i class="fas fa-sort dir-icon"></i></button>
-                    
+                     <button class="sort-btn" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
+                        <i class="fas fa-search" style="color:var(--primary)"></i> Nyaa Search
+                    </button>
+
                    <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
