@@ -325,10 +325,8 @@ function renderUI() {
                         <i class="fas fa-search" style="color:var(--primary)"></i> Nyaa
                     </button>
 
-                    <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1); gap: 0;" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
-        <span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span>
-    </button>
-                    </div>
+                  <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
+                </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
         `;
