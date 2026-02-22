@@ -256,7 +256,6 @@ window.sortItems = function(groupIndex, criteria) {
     group.items.sort((a, b) => {
         if (criteria === 'date') return (a.fullDate - b.fullDate) * asc;
         if (criteria === 'size') return (a.sizeBytes - b.sizeBytes) * asc;
-        if (criteria === 'name') return a.rawTitle.localeCompare(b.rawTitle) * asc;
         return 0;
     });
     document.getElementById(`ep-list-${groupIndex}`).innerHTML = renderEpisodeItems(group.items);
