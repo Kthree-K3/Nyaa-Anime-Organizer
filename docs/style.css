@@ -137,3 +137,11 @@ input:checked + .slider:before { transform: translateX(22px); }
     .anime-header { flex-direction: column; align-items: flex-start; gap: 12px; }
     .episode-item { flex-direction: column; align-items: flex-start; gap: 12px; }
 }
+
+.btn-danger {
+    background: #ef4444 !important;
+}
+.btn-danger:hover {
+    background: #dc2626 !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
