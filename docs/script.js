@@ -4,6 +4,7 @@ const TARGET_DOMAIN = "https://nyaa.land";
 const SIMILARITY_THRESHOLD = 0.5; 
 
 let allGroups = []; 
+let isScanning = false;
 
 const btnScan = document.getElementById('btnScan');
 const btnIcon = document.getElementById('scan-icon');
@@ -123,35 +124,40 @@ function getSimilarity(s1, s2) {
 btnScan.onclick = startScanner;
 
 async function startScanner() {
+    // اگر در حال اسکن بود و دوباره دکمه زده شد -> متوقف کن
+    if (isScanning) {
+        isScanning = false;
+        log("Stopping scan by user...", "error");
+        return;
+    }
+
+    // شروع اسکن جدید
+    isScanning = true;
     const rangeMode = document.getElementById('dateRange').value;
     const isEnglishOnly = langFilter.checked;
     const isMyListEnabled = myListFilter.checked;
     
-    // دریافت لیست انیمه‌ها از حافظه در صورتی که فیلتر روشن باشد
     let myAnimeList = [];
     if (isMyListEnabled) {
         const stored = localStorage.getItem('myAnimeList') || "";
         myAnimeList = stored.split('\n').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
     }
 
-    btnScan.disabled = true;
+    // تغییر ظاهر دکمه به حالت "توقف"
+    btnScan.disabled = false; // دکمه نباید غیرفعال شود تا بشود روی توقف کلیک کرد
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
-    btnText.innerText = "Scanning...";
+    btnIcon.className = "fas fa-stop spinning"; // تغییر آیکون به توقف
+    btnText.innerText = "Stop scanning";
+    btnScan.classList.add('btn-danger'); // تغییر رنگ (اختیاری)
+
     grid.innerHTML = '';
     
     const cutoffDate = new Date();
-    if (rangeMode === '24h') {
-        cutoffDate.setHours(cutoffDate.getHours() - 24);
-    } else if (rangeMode === 'today') {
-        cutoffDate.setHours(0, 0, 0, 0);
-    } else if (rangeMode === '2d') {
-        cutoffDate.setDate(cutoffDate.getDate() - 1);
-        cutoffDate.setHours(0, 0, 0, 0);
-    } else if (rangeMode === '3d') {
-        cutoffDate.setDate(cutoffDate.getDate() - 2);
-        cutoffDate.setHours(0, 0, 0, 0);
-    }
+    if (rangeMode === '24h') cutoffDate.setHours(cutoffDate.getHours() - 24);
+    else if (rangeMode === 'today') cutoffDate.setHours(0, 0, 0, 0);
+    else if (rangeMode === '2d') { cutoffDate.setDate(cutoffDate.getDate() - 1); cutoffDate.setHours(0, 0, 0, 0); }
+    else if (rangeMode === '3d') { cutoffDate.setDate(cutoffDate.getDate() - 2); cutoffDate.setHours(0, 0, 0, 0); }
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
@@ -160,11 +166,16 @@ async function startScanner() {
     let keepScanning = true;
 
     try {
-        while (keepScanning) {
+        while (keepScanning && isScanning) { // شرط اضافه شده: isScanning
             log(`Fetching page ${page}...`);
             const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
             if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
+            
             const htmlText = await response.text();
+            
+            // چک کردن دوباره بعد از دریافت پاسخ (شاید کاربر همان لحظه توقف زده باشد)
+            if (!isScanning) break;
+
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
             const rows = doc.querySelectorAll('tr.default, tr.success, tr.danger, tr.info');
@@ -188,12 +199,8 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
-                // فیلتر زبان
-                if (isEnglishOnly && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) {
-                    continue;
-                }
+                if (isEnglishOnly && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) continue;
 
-                // فیلتر لیست من (جدید)
                 if (isMyListEnabled && myAnimeList.length > 0) {
                     const matchFound = myAnimeList.some(name => lowerRawTitle.includes(name));
                     if (!matchFound) continue;
@@ -219,24 +226,29 @@ async function startScanner() {
                 count++;
             }
             log(`Page ${page}: Found ${count} items.`, 'success');
-             if (!keepScanning) break;
+            
+            if (!keepScanning || !isScanning) break;
+            
             page++;
             await new Promise(r => setTimeout(r, 1200));
         }
 
         organizeGroups(collectedData);
         renderUI();
-        log("Task Complete.", 'success');
+        log(isScanning ? "Task Complete." : "Scan Aborted.", isScanning ? 'success' : 'info');
         searchInput.disabled = false;
     } catch (e) {
         log(`Error: ${e.message}`, 'error');
     } finally {
+        // بازگرداندن دکمه به حالت اول
+        isScanning = false;
         btnScan.disabled = false;
+        btnScan.classList.remove('btn-danger');
+        btnIcon.className = "fas fa-sync-alt";
         btnIcon.classList.remove('spinning');
         btnText.innerText = "Start scanning";
     }
 }
-
 function organizeGroups(data) {
     allGroups = [];
     data.forEach(item => {
