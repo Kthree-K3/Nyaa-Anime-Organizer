@@ -244,24 +244,36 @@ function organizeGroups(data) {
     data.forEach(item => {
         let g = allGroups.find(x => getSimilarity(x.name, item.cleanName) > SIMILARITY_THRESHOLD);
         if (g) g.items.push(item);
-        else allGroups.push({ name: item.cleanName, items: [item], currentSort: 'date', isAsc: false });
+        else allGroups.push({ 
+            name: item.cleanName, 
+            items: [item], 
+            currentSort: 'date', 
+            isAsc: false,
+            currentRes: 'ALL' 
+        });
     });
     allGroups.sort((a,b) => b.items[0].fullDate - a.items[0].fullDate);
 }
 
-window.sortItems = function(groupIndex, criteria) {
-    const group = allGroups[groupIndex];
-    if (group.currentSort === criteria) group.isAsc = !group.isAsc;
-    else { group.currentSort = criteria; group.isAsc = (criteria === 'name'); }
-
-    const asc = group.isAsc ? 1 : -1;
-    group.items.sort((a, b) => {
-        if (criteria === 'date') return (a.fullDate - b.fullDate) * asc;
+window.sortItems = function(idx, criteria) {
+    const g = allGroups[idx];
+    if (g.currentSort === criteria) {
+        g.isAsc = !g.isAsc;
+    } else {
+        g.currentSort = criteria;
+        // سورت سایز بار اول: صعودی (کوچک به بزرگ)
+        g.isAsc = (criteria === 'size'); 
+    }
+    
+    const asc = g.isAsc ? 1 : -1;
+    g.items.sort((a, b) => {
         if (criteria === 'size') return (a.sizeBytes - b.sizeBytes) * asc;
+        if (criteria === 'date') return (a.fullDate - b.fullDate) * asc;
         return 0;
     });
-    document.getElementById(`ep-list-${groupIndex}`).innerHTML = renderEpisodeItems(group.items);
-    updateSortBarUI(groupIndex);
+    
+    renderGroupList(idx);
+    updateSortBarUI(idx);
 };
 
 function updateSortBarUI(idx) {
@@ -297,7 +309,6 @@ function renderUI() {
             </div>
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
-                    <!-- حذف دکمه تاریخ و اضافه کردن سلکت باکس کیفیت -->
                     <select class="res-filter" onchange="filterByRes(${i}, this.value)">
                         <option value="ALL">Quality: ALL</option>
                         <option value="1080">1080p</option>
@@ -313,9 +324,7 @@ function renderUI() {
                         <i class="fas fa-search" style="color:var(--primary)"></i> Nyaa
                     </button>
 
-                    <button class="sort-btn google-btn" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
-                        <span style="color:#4285F4">G</span>oogle
-                    </button>
+                    <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
@@ -325,24 +334,25 @@ function renderUI() {
 }
 
 
-window.filterByRes = function(groupIndex, res) {
-    const group = allGroups[groupIndex];
-    let filtered;
-    
-    if (res === 'ALL') {
-        filtered = group.items;
-    } else {
-        filtered = group.items.filter(item => 
-            item.rawTitle.toLowerCase().includes(res.toLowerCase())
-        );
-    }
-    
-    document.getElementById(`ep-list-${groupIndex}`).innerHTML = renderEpisodeItems(filtered);
+window.filterByRes = function(idx, res) {
+    allGroups[idx].currentRes = res;
+    renderGroupList(idx);
 };
 
+function renderGroupList(idx) {
+    const g = allGroups[idx];
+    let itemsToDisplay = g.items;
+    
+    if (g.currentRes !== 'ALL') {
+        itemsToDisplay = g.items.filter(item => 
+            item.rawTitle.toLowerCase().includes(g.currentRes.toLowerCase())
+        );
+    }
+    document.getElementById(`ep-list-${idx}`).innerHTML = renderEpisodeItems(itemsToDisplay);
+}
 
 function renderEpisodeItems(items) {
-    if (items.length === 0) return '<div style="padding:20px; text-align:center; color:var(--text-dim)">No items found with this quality.</div>';
+    if (items.length === 0) return '<div style="padding:20px; text-align:center; color:var(--text-dim)">No items found.</div>';
     
     return items.map(item => `
         <div class="episode-item is-${item.status}">
@@ -354,12 +364,14 @@ function renderEpisodeItems(items) {
                 </div>
             </div>
             <div class="ep-actions">
-                 <div class="stats-mobile">
-                    <span style="color:#22c55e;"><i class="fas fa-arrow-up"></i> ${item.seeds}</span>
-                    <span style="color:#ef4444;"><i class="fas fa-arrow-down"></i> ${item.peers}</span>
-                 </div>
+                 <span style="color:#22c55e; font-weight:bold; font-size:0.85rem; margin-right:5px">
+                   <i class="fas fa-arrow-up"></i> ${item.seeds}
+                 </span>
+                 <span style="color:#ef4444; font-weight:bold; font-size:0.85rem; margin-right:10px">
+                     <i class="fas fa-arrow-down"></i> ${item.peers}
+                 </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i></a>
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
             </div>
         </div>
     `).join('');
