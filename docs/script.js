@@ -13,7 +13,7 @@ const grid = document.getElementById('anime-list');
 const searchInput = document.getElementById('searchInput');
 const clearSearch = document.getElementById('clearSearch');
 const debugConsole = document.getElementById('debug-console');
-const langFilter = document.getElementById('langFilter');
+
 
 // متغیرهای جدید برای My Anime List
 const btnOpenMyList = document.getElementById('btnOpenMyList');
@@ -132,7 +132,6 @@ async function startScanner() {
 
     isScanning = true;
     const rangeMode = document.getElementById('dateRange').value;
-    const isEnglishOnly = langFilter.checked;
     const isMyListEnabled = myListFilter.checked;
     
     let myAnimeList = [];
@@ -193,7 +192,7 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
-                if (isEnglishOnly && /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]/.test(rawTitle)) continue;
+                
 
                 if (isMyListEnabled && myAnimeList.length > 0) {
                     const matchFound = myAnimeList.some(name => lowerRawTitle.includes(name));
