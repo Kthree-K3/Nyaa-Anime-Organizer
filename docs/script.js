@@ -280,30 +280,7 @@ function updateSortBarUI(idx) {
     });
 }
 
-function renderEpisodeItems(items) {
-    return items.map(item => `
-        <div class="episode-item is-${item.status}">
-            <div class="ep-info">
-                <span class="ep-raw-title" title="${item.rawTitle}">${item.rawTitle}</span>
-                <div class="ep-meta">
-                    <i class="fas fa-weight-hanging"></i> <b>${item.size}</b> &nbsp;&nbsp; 
-                    <i class="far fa-clock"></i> <b>${item.date}</b>
-                </div>
-            </div>
-            <div class="ep-actions">
-                 <span style="color:#22c55e; font-weight:bold; font-size:0.85rem; margin-right:5px">
-                   <i class="fas fa-arrow-up"></i> ${item.seeds}
-                 </span>
-                 <span style="color:#ef4444; font-weight:bold; font-size:0.85rem; margin-right:10px">
-                     <i class="fas fa-arrow-down"></i> ${item.peers}
-                 </span>
-                 ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa</a>
-            </div>
-        </div>
-    `).join('');
-}
-
+// اضافه کردن فیلتر کیفیت به هر گروه
 function renderUI() {
     grid.innerHTML = '';
     allGroups.forEach((g, i) => {
@@ -320,20 +297,72 @@ function renderUI() {
             </div>
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
-                
-                    <button class="sort-btn active" data-sort="date" onclick="sortItems(${i}, 'date')">Date <i class="fas fa-sort-down dir-icon"></i></button>
-                    <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">Size <i class="fas fa-sort dir-icon"></i></button>
-                      <button class="sort-btn" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                    <!-- حذف دکمه تاریخ و اضافه کردن سلکت باکس کیفیت -->
+                    <select class="res-filter" onchange="filterByRes(${i}, this.value)">
+                        <option value="ALL">Quality: ALL</option>
+                        <option value="1080">1080p</option>
+                        <option value="720">720p</option>
+                        <option value="480">480p</option>
+                    </select>
+
+                    <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">
+                        Size <i class="fas fa-sort dir-icon"></i>
+                    </button>
+
+                    <button class="sort-btn" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <i class="fas fa-search" style="color:var(--primary)"></i> Nyaa
                     </button>
 
-                  <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
+                    <button class="sort-btn google-btn" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
+                        <span style="color:#4285F4">G</span>oogle
+                    </button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
         `;
         grid.appendChild(card);
     });
+}
+
+
+window.filterByRes = function(groupIndex, res) {
+    const group = allGroups[groupIndex];
+    let filtered;
+    
+    if (res === 'ALL') {
+        filtered = group.items;
+    } else {
+        filtered = group.items.filter(item => 
+            item.rawTitle.toLowerCase().includes(res.toLowerCase())
+        );
+    }
+    
+    document.getElementById(`ep-list-${groupIndex}`).innerHTML = renderEpisodeItems(filtered);
+};
+
+
+function renderEpisodeItems(items) {
+    if (items.length === 0) return '<div style="padding:20px; text-align:center; color:var(--text-dim)">No items found with this quality.</div>';
+    
+    return items.map(item => `
+        <div class="episode-item is-${item.status}">
+            <div class="ep-info">
+                <span class="ep-raw-title" onclick="this.classList.toggle('full-text')" title="${item.rawTitle}">${item.rawTitle}</span>
+                <div class="ep-meta">
+                    <i class="fas fa-weight-hanging"></i> <b>${item.size}</b> &nbsp;&nbsp; 
+                    <i class="far fa-clock"></i> <b>${item.date}</b>
+                </div>
+            </div>
+            <div class="ep-actions">
+                 <div class="stats-mobile">
+                    <span style="color:#22c55e;"><i class="fas fa-arrow-up"></i> ${item.seeds}</span>
+                    <span style="color:#ef4444;"><i class="fas fa-arrow-down"></i> ${item.peers}</span>
+                 </div>
+                 ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i></a>
+            </div>
+        </div>
+    `).join('');
 }
 
 function toggleCard(id) {
