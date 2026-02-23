@@ -1,4 +1,4 @@
-// ================= تنظیمات اصلی =================
+// ================= تنظیمات اصلی ==================
 const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
 const TARGET_DOMAIN = "https://nyaa.land"; 
 const SIMILARITY_THRESHOLD = 0.5; 
