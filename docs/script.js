@@ -310,7 +310,7 @@ function renderUI() {
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
                     <select class="res-filter" onchange="filterByRes(${i}, this.value)">
-                        <option value="ALL">Quality: ALL</option>
+                        <option value="ALL">ALL</option>
                         <option value="1080">1080p</option>
                         <option value="720">720p</option>
                         <option value="480">480p</option>
