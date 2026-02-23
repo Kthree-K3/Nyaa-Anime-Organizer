@@ -145,3 +145,66 @@ input:checked + .slider:before { transform: translateX(22px); }
     background: #dc2626 !important;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
 }
+/* استایل سلکت باکس فیلتر کیفیت */
+.res-filter {
+    background: #1e293b;
+    color: var(--primary);
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.res-filter:hover {
+    border-color: var(--primary);
+}
+
+/* راه حل نمایش نام کامل تورنت */
+.ep-raw-title {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    white-space: nowrap; /* پیش‌فرض: یک خطی */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer; /* نشانگر کلیک */
+    transition: all 0.2s;
+}
+
+/* وقتی روی نام کلیک شود (در موبایل و دسکتاپ) */
+.ep-raw-title.full-text {
+    white-space: normal; /* شکستن متن و نمایش کامل */
+    overflow: visible;
+    word-break: break-all;
+    color: var(--text-main);
+    background: rgba(0,0,0,0.2);
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* بهینه‌سازی دکمه گوگل برای فضای کمتر */
+.google-btn {
+    margin-left: auto;
+    font-weight: 800;
+    border-color: rgba(255,255,255,0.1);
+}
+
+/* اصلاح چیدمان اکشن‌ها در موبایل */
+@media (max-width: 600px) {
+    .ep-actions {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+    .stats-mobile {
+        display: flex;
+        gap: 10px;
+        margin-right: auto;
+        font-size: 0.8rem;
+    }
+}
