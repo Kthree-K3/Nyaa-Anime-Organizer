@@ -20,8 +20,30 @@ const btnOpenMyList = document.getElementById('btnOpenMyList');
 const modal = document.getElementById('myListModal');
 const btnCloseMyList = document.getElementById('btnCloseMyList');
 const btnSaveMyList = document.getElementById('btnSaveMyList');
-const myListInput = document.getElementById('myListInput');
 const myListFilter = document.getElementById('myListFilter');
+
+// متغیرهای بخش جستجو و لیست هوشمند
+const myListSearchInput = document.getElementById('myListSearchInput');
+const btnSearchForList = document.getElementById('btnSearchForList');
+const myListSearchResults = document.getElementById('myListSearchResults');
+const myListContainer = document.getElementById('myListContainer');
+
+const clearMyListSearch = document.getElementById('clearMyListSearch');
+
+// منطق دکمه پاکسازی در لیست من
+myListSearchInput.oninput = function() {
+    clearMyListSearch.style.display = this.value ? 'block' : 'none';
+};
+
+clearMyListSearch.onclick = function() {
+    myListSearchInput.value = '';
+    this.style.display = 'none';
+    myListSearchResults.style.display = 'none';
+    myListSearchInput.focus();
+};
+
+// لود کردن دیتای ذخیره شده
+let mySavedList = JSON.parse(localStorage.getItem('mySmartAnimeList') || "[]");
 
 function log(msg, type = 'info') {
     const colors = { error: '#f87171', success: '#4ade80', info: '#94a3b8' };
@@ -49,26 +71,15 @@ clearSearch.onclick = function() {
     searchInput.focus();
 };
 
-// ================= بخش My Anime List (Popup & Storage) =================
-btnOpenMyList.onclick = function() {
-    const savedList = localStorage.getItem('myAnimeList') || "";
-    myListInput.value = savedList;
-    modal.style.display = "block";
-}
-
-btnCloseMyList.onclick = function() {
-    modal.style.display = "none";
-}
-
-btnSaveMyList.onclick = function() {
-    localStorage.setItem('myAnimeList', myListInput.value);
-    modal.style.display = "none";
-    log("My Anime List saved successfully.", "success");
-}
-
+// مدیریت کلیک روی صفحه برای بستن هر دو مودال
 window.onclick = function(event) {
+    const infoModal = document.getElementById('animeInfoModal');
     if (event.target == modal) {
         modal.style.display = "none";
+        myListSearchResults.style.display = 'none';
+    }
+    if (event.target == infoModal) {
+        infoModal.style.display = "none";
     }
 }
 
@@ -123,29 +134,192 @@ function getSimilarity(s1, s2) {
 // ================= عملیات اسکن اصلی =================
 btnScan.onclick = startScanner;
 
-async function startScanner() {
-    if (isScanning) {
-        isScanning = false;
-        log("Stopping scan by user...", "error");
+// ================= منطق مدیریت لیست هوشمند (Smart Watchlist Logic) =================
+
+// کد جدید که جایگزین می‌شود (با تمام اصلاحات)
+// ================= منطق مدیریت لیست هوشمند (Smart Watchlist Logic) =================
+
+// کد جدید و اصلاح شده که جایگزین می‌شود
+// ================= منطق مدیریت لیست هوشمند (Smart Watchlist) =================
+
+btnOpenMyList.onclick = function() {
+    modal.style.display = "block";
+    renderMySavedList();
+    myListSearchInput.focus();
+};
+
+btnCloseMyList.onclick = function() {
+    modal.style.display = "none";
+    myListSearchResults.style.display = 'none';
+};
+
+// افزودن انیمه با استخراج خودکار کلمات کلیدی
+function addToMyList(anime) {
+    if (mySavedList.some(x => x.id === anime.id)) return;
+
+    // تمیز کردن نام‌ها و حذف دو نقطه
+    const cleanEng = cleanTitle(anime.english).replace(/:/g, '');
+    const cleanRom = cleanTitle(anime.romaji).replace(/:/g, '');
+    
+    const keywordSet = new Set();
+    if (cleanEng && cleanEng !== "Unknown") keywordSet.add(cleanEng);
+    if (cleanRom && cleanRom !== "Unknown") keywordSet.add(cleanRom);
+    
+    mySavedList.unshift({
+        id: anime.id,
+        english: anime.english,
+        romaji: anime.romaji,
+        cover: anime.cover,
+        keywords: Array.from(keywordSet).join('\n')
+    });
+    
+    localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
+    renderMySavedList();
+}
+
+// نمایش لیست با قابلیت ویرایش و نمایش تگ‌ها
+function renderMySavedList() {
+    myListContainer.innerHTML = '';
+    if (mySavedList.length === 0) {
+        myListContainer.innerHTML = '<div style="color:gray; grid-column:1/-1; text-align:center; padding:20px;">List is empty. Search to add.</div>';
         return;
     }
+   mySavedList.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'saved-item';
+        const keywords = item.keywords || ''; 
+        div.innerHTML = `
+            <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
+            <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
+                <!-- عنوان کلیک‌خور برای باز کردن مشخصات -->
+                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
+                
+                <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
+                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="Click to edit keywords">
+                    ${keywords.split('\n').filter(k => k).join(', ')}
+                </div>
+            </div>
+            <div class="edit-keywords-box" id="edit-mode-${index}">
+                <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
+                <div class="edit-actions">
+                    <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
+                    <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
+                </div>
+            </div>
+            <button class="btn-remove-item" onclick="removeFromMyList(${index})"><i class="fas fa-times"></i></button>
+        `;
+        myListContainer.appendChild(div);
+    });
+}
 
+// سوییچ بین نمایش و ویرایش
+// سوییچ بین نمایش و ویرایش با قابلیت ریست کردن متن در صورت انصراف
+window.toggleEditKeywords = function(index, isEdit) {
+    const viewEl = document.getElementById(`view-mode-${index}`);
+    const editEl = document.getElementById(`edit-mode-${index}`);
+    const textarea = document.getElementById(`input-keywords-${index}`);
+
+    if (viewEl && editEl && textarea) {
+        if (!isEdit) {
+            // اگر دکمه انصراف زده شد، متن باکس را به مقدار اصلی برگردان
+            textarea.value = mySavedList[index].keywords;
+        }
+        
+        viewEl.style.display = isEdit ? 'none' : 'flex';
+        editEl.style.display = isEdit ? 'block' : 'none';
+        
+        if (isEdit) textarea.focus();
+    }
+};
+
+
+window.saveKeywords = function(index) {
+    const textarea = document.getElementById(`input-keywords-${index}`);
+    const value = textarea.value;
+    
+    // حذف علامت دو نقطه (:) موقع ذخیره نهایی
+    const cleanValue = value.replace(/:/g, '');
+    
+    // آپدیت کردن لیست اصلی و ذخیره در حافظه
+    mySavedList[index].keywords = cleanValue.trim();
+    localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
+    
+    // بازگرداندن صفحه به حالت نمایش
+    renderMySavedList();
+};
+
+window.removeFromMyList = function(index) {
+    mySavedList.splice(index, 1);
+    localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
+    renderMySavedList();
+};
+
+btnSearchForList.onclick = () => searchAniListForAdd(myListSearchInput.value);
+myListSearchInput.onkeypress = (e) => { if (e.key === 'Enter') searchAniListForAdd(myListSearchInput.value); };
+
+// جستجو با نمایش دوخطی و بستن خودکار باکس نتایج
+async function searchAniListForAdd(query) {
+    if (!query.trim()) return;
+    myListSearchResults.style.display = 'block';
+    clearMyListSearch.style.display = 'block';
+    myListSearchResults.innerHTML = '<div style="padding:10px; color:gray;">Searching...</div>';
+
+    const gql = `query ($s: String) { Page(perPage: 10) { media(search: $s, type: ANIME) { id title { romaji english } coverImage { medium } } } }`;
+    
+    try {
+        const res = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ query: gql, variables: { s: query } })
+        });
+        const json = await res.json();
+        myListSearchResults.innerHTML = '';
+        
+        if (!json.data.Page.media.length) {
+            myListSearchResults.innerHTML = '<div style="padding:10px;">No results found.</div>';
+            return;
+        }
+
+        json.data.Page.media.forEach(anime => {
+            const div = document.createElement('div');
+            div.className = 'add-item-row';
+            const engTitle = anime.title.english || "";
+            div.innerHTML = `
+                <img src="${anime.coverImage.medium}" class="add-item-img">
+                <div class="add-item-info-search">
+                    <span class="add-item-romaji">${anime.title.romaji}</span>
+                    <span class="add-item-english">${engTitle}</span>
+                </div>`;
+            
+            div.onclick = () => {
+                addToMyList({
+                    id: anime.id,
+                    english: anime.title.english || "",
+                    romaji: anime.title.romaji,
+                    cover: anime.coverImage.medium
+                });
+                myListSearchInput.value = '';
+                myListSearchResults.style.display = 'none';
+                clearMyListSearch.style.display = 'none';
+            };
+            myListSearchResults.appendChild(div);
+        });
+    } catch (e) { 
+        myListSearchResults.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>'; 
+    }
+}
+// ================= عملیات اسکن اصلی (یکپارچه با لیست هوشمند) =================
+async function startScanner() {
+    if (isScanning) { isScanning = false; log("Stopping scan...", "error"); return; }
     isScanning = true;
     const rangeMode = document.getElementById('dateRange').value;
     const isMyListEnabled = myListFilter.checked;
     
-    let myAnimeList = [];
-    if (isMyListEnabled) {
-        const stored = localStorage.getItem('myAnimeList') || "";
-        myAnimeList = stored.split('\n').map(s => s.trim().toLowerCase()).filter(s => s.length > 0);
-    }
-
     btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
     btnText.innerText = "Stop scanning";
     btnScan.classList.add('btn-danger');
-
     grid.innerHTML = '';
     
     const cutoffDate = new Date();
@@ -153,6 +327,11 @@ async function startScanner() {
     else if (rangeMode === 'today') cutoffDate.setHours(0, 0, 0, 0);
     else if (rangeMode === '2d') { cutoffDate.setDate(cutoffDate.getDate() - 1); cutoffDate.setHours(0, 0, 0, 0); }
     else if (rangeMode === '3d') { cutoffDate.setDate(cutoffDate.getDate() - 2); cutoffDate.setHours(0, 0, 0, 0); }
+    else if (rangeMode === '4d') { cutoffDate.setDate(cutoffDate.getDate() - 3); cutoffDate.setHours(0, 0, 0, 0); }
+    else if (rangeMode === '5d') { cutoffDate.setDate(cutoffDate.getDate() - 4); cutoffDate.setHours(0, 0, 0, 0); }
+    else if (rangeMode === '6d') { cutoffDate.setDate(cutoffDate.getDate() - 5); cutoffDate.setHours(0, 0, 0, 0); }
+    else if (rangeMode === '7d') { cutoffDate.setDate(cutoffDate.getDate() - 6); cutoffDate.setHours(0, 0, 0, 0); }
+
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
@@ -164,18 +343,14 @@ async function startScanner() {
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
             const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
-            if(!response.ok) throw new Error(`HTTP Error ${response.status}`);
-            
             const htmlText = await response.text();
             if (!isScanning) break;
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
             const rows = doc.querySelectorAll('tr.default, tr.success, tr.danger, tr.info');
-
             if (rows.length === 0) break;
 
-            let count = 0;
             for (let tr of rows) {
                 const tds = tr.querySelectorAll('td');
                 if (tds.length < 5) continue;
@@ -192,16 +367,15 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
-                
+                if (isMyListEnabled && mySavedList.length > 0) {
+    const matchFound = mySavedList.some(anime => {
+        const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
+        return keywordList.some(keyword => lowerRawTitle.includes(keyword.trim()));
+    });
+    if (!matchFound) continue;
+}
 
-                if (isMyListEnabled && myAnimeList.length > 0) {
-                    const matchFound = myAnimeList.some(name => lowerRawTitle.includes(name));
-                    if (!matchFound) continue;
-                }
-
-                let status = 'normal';
-                if (tr.classList.contains('success')) status = 'trusted';
-                if (tr.classList.contains('danger')) status = 'remake';
+                let status = tr.classList.contains('success') ? 'trusted' : (tr.classList.contains('danger') ? 'remake' : 'normal');
 
                 collectedData.push({
                     rawTitle,
@@ -210,64 +384,91 @@ async function startScanner() {
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
                     sizeBytes: sizeToBytes(tds[3].innerText.trim()),
-                    date: new Date(timestamp * 1000).toLocaleString('sv').replace('T', ' ').substring(0, 16),
+                    date: new Date(timestamp * 1000).toLocaleString('sv').substring(0, 16),
                     fullDate: itemDate,
                     status: status,
                     seeds: tds[5].innerText.trim(), 
                     peers: tds[6].innerText.trim()  
                 });
-                count++;
             }
-            log(`Page ${page}: Found ${count} items.`, 'success');
+            log(`Page ${page}: Done.`, 'success');
             if (!keepScanning || !isScanning) break;
             page++;
             await new Promise(r => setTimeout(r, 1200));
         }
-
         organizeGroups(collectedData);
         renderUI();
         log(isScanning ? "Task Complete." : "Scan Aborted.", isScanning ? 'success' : 'info');
-        searchInput.disabled = false;
-    } catch (e) {
-        log(`Error: ${e.message}`, 'error');
-    } finally {
+    } catch (e) { log(`Error: ${e.message}`, 'error'); } 
+    finally {
         isScanning = false;
         btnScan.disabled = false;
         btnScan.classList.remove('btn-danger');
         btnIcon.classList.remove('spinning');
         btnText.innerText = "Start scanning";
+        searchInput.disabled = false;
     }
 }
+
 function organizeGroups(data) {
     allGroups = [];
+    
+    // 1. دسته‌بندی اولیه بر اساس شباهت
     data.forEach(item => {
         let g = allGroups.find(x => getSimilarity(x.name, item.cleanName) > SIMILARITY_THRESHOLD);
-        if (g) g.items.push(item);
-        else allGroups.push({ 
-            name: item.cleanName, 
-            items: [item], 
-            currentSort: 'date', 
-            isAsc: false,
-            currentRes: 'ALL' 
-        });
+        if (g) {
+            g.items.push(item);
+        } else {
+            allGroups.push({ 
+                name: item.cleanName, // نام موقت
+                items: [item], 
+                currentSort: 'date', 
+                isAsc: false,
+                currentRes: 'ALL' 
+            });
+        }
     });
+
+    // 2. اصلاح نام گروه: انتخاب نامی که بیشترین تکرار را دارد
+    allGroups.forEach(group => {
+        const nameCounts = {};
+        let maxCount = 0;
+        let bestName = group.name;
+
+        // شمارش تکرار هر نام تمیز شده در گروه
+        group.items.forEach(item => {
+            const n = item.cleanName;
+            nameCounts[n] = (nameCounts[n] || 0) + 1;
+            
+            if (nameCounts[n] > maxCount) {
+                maxCount = nameCounts[n];
+                bestName = n;
+            }
+        });
+
+        group.name = bestName; // ثبت نام نهایی
+    });
+
+    // 3. مرتب‌سازی گروه‌ها بر اساس تاریخ جدیدترین آیتم
     allGroups.sort((a,b) => b.items[0].fullDate - a.items[0].fullDate);
 }
 
+// تابع جدید با پشتیبانی از مرتب‌سازی بر اساس نام
 window.sortItems = function(idx, criteria) {
     const g = allGroups[idx];
     if (g.currentSort === criteria) {
         g.isAsc = !g.isAsc;
     } else {
         g.currentSort = criteria;
-        // سورت سایز بار اول: صعودی (کوچک به بزرگ)
-        g.isAsc = (criteria === 'size'); 
+        // تنظیم جهت پیش‌فرض: تاریخ (نزولی)، بقیه (صعودی)
+        g.isAsc = (criteria !== 'date'); 
     }
     
     const asc = g.isAsc ? 1 : -1;
     g.items.sort((a, b) => {
         if (criteria === 'size') return (a.sizeBytes - b.sizeBytes) * asc;
         if (criteria === 'date') return (a.fullDate - b.fullDate) * asc;
+        if (criteria === 'name') return a.rawTitle.localeCompare(b.rawTitle) * asc;
         return 0;
     });
     
@@ -301,29 +502,47 @@ function renderUI() {
         card.innerHTML = `
             <div class="anime-header" onclick="toggleCard(${i})">
                 <span class="anime-title">${g.name}</span>
-                <div style="display:flex; align-items:center; gap:10px">
-                    <span class="badge">${g.items.length} Files</span>
-                    <i class="fas fa-chevron-down" style="color:var(--text-dim); font-size:0.8rem"></i>
+                <div style="display:flex; align-items:center; gap:5px">
+                    <span class="badge" style="margin-right:5px">${g.items.length} Files</span>
+                    
+                    <!-- دکمه انی‌لیست -->
+                    <button class="header-icon-btn" title="View on AniList" onclick="event.stopPropagation(); openAnimeInfo(${i})">
+                        <img src="https://anilist.co/img/icons/favicon-32x32.png" alt="AL">
+                    </button>
+
+                    <!-- دکمه جدید Nyaa (منتقل شده به اینجا با آیکون فاوآیکون) -->
+                    <button class="header-icon-btn" title="Search Nyaa" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                        <img src="favicon.ico" alt="N">
+                    </button>
+
+                     <!-- دکمه گوگل -->
+                    <button class="header-icon-btn" title="Search Google" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
+                        <img src="https://www.gstatic.com/images/branding/searchlogo/ico/favicon.ico" alt="G">
+                    </button>
+
+                    <i class="fas fa-chevron-down" style="color:var(--text-dim); font-size:0.8rem; margin-left:5px"></i>
                 </div>
             </div>
             <div id="ep-${i}" class="episodes-list ltr-content">
                 <div class="sort-bar">
                     <select class="res-filter" onchange="filterByRes(${i}, this.value)">
-                        <option value="ALL">ALL</option>
+                        <option value="ALL">Qulity: ALL</option>
                         <option value="1080">1080p</option>
                         <option value="720">720p</option>
                         <option value="480">480p</option>
                     </select>
 
+                    <button class="sort-btn" data-sort="date" onclick="sortItems(${i}, 'date')">
+                        Date <i class="fas fa-sort dir-icon"></i>
+                    </button>
+
                     <button class="sort-btn" data-sort="size" onclick="sortItems(${i}, 'size')">
                         Size <i class="fas fa-sort dir-icon"></i>
                     </button>
 
-                    <button class="sort-btn" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
-                        <i class="fas fa-search" style="color:var(--primary)"></i> Nyaa
+                    <button class="sort-btn" data-sort="name" onclick="sortItems(${i}, 'name')">
+                        Name <i class="fas fa-sort dir-icon"></i>
                     </button>
-
-                    <button class="sort-btn" style="margin-left:auto; font-weight:800; border-color:rgba(255,255,255,0.1)" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')"><span style="color:#4285F4">G</span><span style="color:#EA4335">o</span><span style="color:#FBBC05">o</span><span style="color:#4285F4">g</span><span style="color:#34A853">l</span><span style="color:#EA4335">e</span></button>
                 </div>
                 <div id="ep-list-${i}">${renderEpisodeItems(g.items)}</div>
             </div>
@@ -380,3 +599,221 @@ function toggleCard(id) {
     const el = document.getElementById(`ep-${id}`);
     el.style.display = (window.getComputedStyle(el).display === 'block') ? 'none' : 'block';
 }
+
+// ================= بخش اطلاعات انیمه (AniList GraphQL) =================
+const infoModal = document.getElementById('animeInfoModal');
+const btnCloseAnimeInfo = document.getElementById('btnCloseAnimeInfo');
+const aniListSearchInput = document.getElementById('aniListSearchInput');
+const btnSearchAniList = document.getElementById('btnSearchAniList');
+const aniListContent = document.getElementById('aniListContent');
+
+let currentAniListResults = []; // برای نگهداری نتایج جستجو در حافظه
+
+// بستن مودال با دکمه ضربدر
+btnCloseAnimeInfo.onclick = function() {
+    infoModal.style.display = "none";
+};
+
+// باز کردن مودال و شروع جستجوی خودکار
+window.openAnimeInfo = function(idx) {
+    const groupName = allGroups[idx].name;
+    aniListSearchInput.value = groupName;
+    infoModal.style.display = "block";
+    searchAniList(groupName);
+};
+
+// جستجو با دکمه یا زدن کلید Enter روی کیبورد
+btnSearchAniList.onclick = () => searchAniList(aniListSearchInput.value);
+aniListSearchInput.onkeypress = function(e) {
+    if (e.key === 'Enter') searchAniList(this.value);
+};
+
+// ارسال درخواست به API سایت AniList (آپدیت شده با گزینه‌های جدید)
+async function searchAniList(searchQuery) {
+    if (!searchQuery.trim()) return;
+    
+    aniListContent.innerHTML = '<div style="text-align:center; padding:20px; color:var(--primary);"><i class="fas fa-spinner spinning" style="font-size: 2rem;"></i><div style="margin-top:10px;">Searching AniList...</div></div>';
+    
+    const query = `
+    query ($search: String) {
+        Page (page: 1, perPage: 5) {
+            media (search: $search, type: ANIME, sort: POPULARITY_DESC) {
+                id
+                siteUrl
+                title { romaji english }
+                coverImage { large }
+                bannerImage
+                description(asHtml: false)
+                averageScore
+                episodes
+                status
+                seasonYear
+                format
+                genres
+                studios(isMain: true) { nodes { name } }
+                relations {
+                    edges {
+                        relationType(version: 2)
+                        node { id title { romaji } siteUrl type }
+                    }
+                }
+            }
+        }
+    }`;
+
+    const variables = { search: searchQuery };
+    const url = 'https://graphql.anilist.co';
+    const options = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ query, variables })
+    };
+
+    try {
+        const response = await fetch(url, options);
+        const json = await response.json();
+        
+        if (!response.ok) throw new Error(json.errors ? json.errors[0].message : "API Error");
+        
+        currentAniListResults = json.data.Page.media;
+        renderAniListResults();
+    } catch (error) {
+        aniListContent.innerHTML = `<div style="color:#ef4444; padding:20px; text-align:center;">Error: ${error.message}</div>`;
+    }
+}
+
+// نمایش جزئیات کامل (آپدیت شده: بنر، لینک، استودیو، ریلیشن)
+// نمایش جزئیات کامل (اصلاح شده برای نمایش صحیح بنر)
+window.showAniListDetails = function(index) {
+    const anime = currentAniListResults[index];
+    const romaji = anime.title.romaji || 'Unknown Title';
+    const english = anime.title.english || "";
+    const img = anime.coverImage.large;
+    
+    // اگر بنر نال بود، یک تصویر گرادینت پیش‌فرض استفاده می‌کنیم
+    const bannerStyle = anime.bannerImage 
+        ? `background-image: url('${anime.bannerImage}');` 
+        : `background: linear-gradient(45deg, #334155, #0f172a);`;
+
+    const desc = anime.description ? anime.description.replace(/<br><br>/g, '<br>').replace(/<[^>]+>/g, '') : 'No description available.';
+    const score = anime.averageScore ? anime.averageScore + '%' : 'N/A';
+    const studio = anime.studios && anime.studios.nodes.length > 0 ? anime.studios.nodes[0].name : 'Unknown Studio';
+    
+    let relationsHtml = '';
+    if (anime.relations && anime.relations.edges.length > 0) {
+        relationsHtml = `<div class="anilist-relations"><div class="relation-title">Related Anime:</div><div class="relation-grid">` + 
+        anime.relations.edges.filter(r => r.node.type === 'ANIME').slice(0, 4).map(r => `
+            <a href="${r.node.siteUrl}" target="_blank" class="relation-item">
+                <span class="relation-type">${r.relationType.replace('_', ' ')}</span>
+                ${r.node.title.romaji}
+            </a>
+        `).join('') + `</div></div>`;
+    }
+
+    aniListContent.innerHTML = `
+        <button class="anilist-back-btn" onclick="renderAniListResults()">
+            <i class="fas fa-arrow-left"></i> Back to results
+        </button>
+        
+        <div class="anilist-details ltr-content">
+            <!-- بنر با استایل درون‌خطی -->
+            <div class="anilist-banner" style="${bannerStyle}"></div>
+            
+            <div class="anilist-header-content">
+                <img src="${img}" class="anilist-details-cover" alt="cover">
+                <div style="flex:1; padding-top:60px;">
+                    <div style="display: flex; flex-direction: column;">
+        <a href="${anime.siteUrl}" target="_blank" class="anilist-link-title" title="Open in AniList">
+            ${romaji} <i class="fas fa-external-link-alt" style="font-size:0.7em; vertical-align:middle;"></i>
+        </a>
+        <div class="anilist-sub-title">${english}</div>
+    </div>
+                    
+                    <div class="anilist-badges-row">
+                        <span class="stat-tag"><i class="fas fa-star" style="color:#eab308"></i> ${score}</span>
+                        <span class="stat-tag"><i class="fas fa-film"></i> ${anime.format || 'TV'}</span>
+                        <span class="stat-tag"><i class="fas fa-video"></i> ${anime.episodes || '?'} Eps</span>
+                        <span class="stat-tag"><i class="fas fa-building"></i> ${studio}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 15px 10px;">
+                <div class="anilist-details-desc">${desc}</div>
+                ${relationsHtml}
+            </div>
+        </div>
+    `;
+};
+
+// نمایش لیست نتایج جستجو (این تابع جا افتاده بود)
+window.renderAniListResults = function() {
+    if (!currentAniListResults || currentAniListResults.length === 0) {
+        aniListContent.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">No results found.<br>Try editing the search text.</div>';
+        return;
+    }
+
+    const html = currentAniListResults.map((anime, index) => {
+        const title = anime.title.english || anime.title.romaji || 'Unknown Title';
+        const year = anime.seasonYear || 'N/A';
+        const format = anime.format || 'TV'; // فرمت انیمه (TV, Movie, etc)
+        const img = anime.coverImage.large;
+
+        return `
+            <div class="anilist-result-item" onclick="showAniListDetails(${index})">
+                <img src="${img}" class="anilist-result-img" alt="cover">
+                <div class="anilist-result-info">
+                    <div class="anilist-result-title">${title}</div>
+                    <div class="anilist-result-meta">${year} • ${format} • ${anime.status}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    aniListContent.innerHTML = html;
+};
+
+// باز کردن مستقیم اطلاعات انیمه با استفاده از آیدی
+window.openAnimeInfoById = async function(id) {
+    // باز کردن مودال و نمایش لودینگ
+    infoModal.style.display = "block";
+    aniListContent.innerHTML = '<div style="text-align:center; padding:50px; color:var(--primary);"><i class="fas fa-spinner spinning" style="font-size: 2rem;"></i></div>';
+
+    // کوئری برای گرفتن اطلاعات با ID (دقیقاً با همان فیلدهایی که قبلاً ساختیم)
+    const query = `
+    query ($id: Int) {
+        Media (id: $id, type: ANIME) {
+            id siteUrl title { romaji english }
+            coverImage { large } bannerImage description(asHtml: false)
+            averageScore episodes status seasonYear format genres
+            studios(isMain: true) { nodes { name } }
+            relations {
+                edges {
+                    relationType(version: 2)
+                    node { id title { romaji } siteUrl type }
+                }
+            }
+        }
+    }`;
+
+    try {
+        const response = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ query, variables: { id: id } })
+        });
+        const json = await response.json();
+        
+        if (json.data && json.data.Media) {
+            // قرار دادن نتیجه در آرایه موقت و نمایش آن
+            currentAniListResults = [json.data.Media];
+            showAniListDetails(0); 
+            
+            // مخفی کردن دکمه Back چون در این حالت به نتایج جستجو برنمی‌گردیم
+            const backBtn = document.querySelector('.anilist-back-btn');
+            if(backBtn) backBtn.style.display = 'none';
+        }
+    } catch (error) {
+        aniListContent.innerHTML = `<div style="color:var(--error); padding:20px; text-align:center;">Error loading details.</div>`;
+    }
+};

@@ -25,6 +25,10 @@
                             <option value="today" selected>Today</option>
                             <option value="2d">Last 2 days</option>
                             <option value="3d">Last 3 days</option>
+                            <option value="4d">Last 4 days</option>
+                            <option value="5d">Last 5 days</option>
+                            <option value="6d">Last 6 days</option>
+                            <option value="7d">Last 7 days</option>
                         </select>
                     </div>
                     <button id="btnScan" class="btn-primary">
@@ -69,22 +73,62 @@
         </section>
     </main>
 
-    <!-- پاپ‌آپ (Modal) برای لیست انیمه‌های من -->
+   <!-- پاپ‌آپ جدید (Modal) برای لیست انیمه‌های من -->
     <div id="myListModal" class="modal">
-        <div class="modal-content ltr-content">
+        <div class="modal-content ltr-content" style="max-width: 500px; height: 80vh; display: flex; flex-direction: column;">
             <div class="modal-header">
-                <h3>My Anime List</h3>
+                <h3><i class="fas fa-list-ul"></i> My Smart List</h3>
                 <span class="close-modal" id="btnCloseMyList">&times;</span>
             </div>
-            <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 10px;">
-                Enter each anime name on a new line. The scanner will only show results matching these names.
-            </p>
-            <textarea id="myListInput" placeholder="One Piece&#10;Bleach&#10;Naruto..."></textarea>
-            <div class="modal-footer">
-                <button id="btnSaveMyList" class="btn-primary">Save List</button>
+            
+            <!-- بخش جستجو و افزودن -->
+            <div style="padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 15px;">
+                <div class="search-wrapper" style="display: flex; gap: 10px; position: relative;">
+    <div style="position: relative; flex: 1;">
+        <input type="text" id="myListSearchInput" placeholder="Add new anime..." style="width: 100%; border-radius: 8px; padding-right: 35px;">
+        <!-- آیکون ضربدر برای پاک کردن -->
+        <i class="fas fa-times-circle" id="clearMyListSearch" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--error); cursor: pointer; display: none;"></i>
+    </div>
+    <button id="btnSearchForList" class="btn-primary" style="padding: 10px 15px; border-radius: 8px;">
+        <i class="fas fa-plus"></i>
+    </button>
+</div>
+                <!-- نتایج جستجو اینجا میاد -->
+                <div id="myListSearchResults" class="my-list-results"></div>
             </div>
+
+            <!-- لیست انیمه‌های ذخیره شده -->
+            <div style="flex: 1; overflow-y: auto;">
+                <h4 style="margin: 0 0 10px 0; color: var(--text-dim); font-size: 0.9rem;">Watchlist Items:</h4>
+                <div id="myListContainer" class="my-list-grid">
+                    <!-- آیتم‌های ذخیره شده اینجا میان -->
+                </div>
+            </div>
+
+           
         </div>
     </div>
 
+<div id="animeInfoModal" class="modal">
+        <div class="modal-content ltr-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 style="display: flex; align-items: center; gap: 10px; margin: 0;">
+    <img src="https://anilist.co/img/icons/favicon-32x32.png" alt="AL" style="width: 24px; height: 24px;">
+    Anime Info
+</h3>
+                <span class="close-modal" id="btnCloseAnimeInfo">&times;</span>
+            </div>
+            
+            <div class="search-wrapper" style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <input type="text" id="aniListSearchInput" placeholder="Edit title to search..." style="flex: 1; border-radius: 8px;">
+                <button id="btnSearchAniList" class="btn-primary" style="padding: 10px 15px; border-radius: 8px;">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <div id="aniListContent" style="min-height: 200px; max-height: 60vh; overflow-y: auto; padding-right: 5px;">
+            </div>
+        </div>
+    </div>
 </body>
 </html>

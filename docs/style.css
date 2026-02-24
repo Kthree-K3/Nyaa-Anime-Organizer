@@ -117,7 +117,9 @@ input:checked + .slider:before { transform: translateX(22px); }
     background-color: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
 }
 .modal-content {
-    background-color: var(--card-bg); margin: 10% auto; padding: 20px; border: 1px solid var(--border);
+    background-color: var(--card-bg); 
+    margin: 20px auto; /* چسبیدن به بالای صفحه با فاصله اندک */
+    padding: 20px; border: 1px solid var(--border);
     width: 90%; max-width: 500px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
@@ -207,4 +209,341 @@ input:checked + .slider:before { transform: translateX(22px); }
         margin-right: auto;
         font-size: 0.8rem;
     }
+}
+
+/* ================= AniList Modal & Info Button ================= */
+
+/* دکمه (ℹ️) کنار تعداد فایل‌ها */
+.btn-info-badge {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 2px 6px;
+    font-size: 1rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+.btn-info-badge:hover {
+    color: white;
+    background: var(--primary);
+}
+
+/* استایل لیست نتایج جستجو */
+.anilist-result-item {
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.anilist-result-item:hover {
+    background: rgba(30, 41, 59, 0.8);
+}
+.anilist-result-img {
+    width: 50px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #1e293b;
+}
+.anilist-result-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.anilist-result-title {
+    font-weight: bold;
+    color: var(--text-main);
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+.anilist-result-meta {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+/* استایل نمای اطلاعات کامل انیمه */
+.anilist-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.anilist-details-header {
+    display: flex;
+    gap: 15px;
+}
+.anilist-details-cover {
+    width: 120px;
+    height: 170px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+}
+.anilist-details-title {
+    font-size: 1.2rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+.anilist-details-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+}
+.anilist-stat-badge {
+    background: #1e293b;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+}
+.anilist-details-desc {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-dim);
+    background: rgba(0,0,0,0.2);
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+/* دکمه بازگشت چسبنده (Sticky) */
+.anilist-back-btn {
+    position: sticky; /* چسبیدن به بالا */
+    top: 0;
+    z-index: 50; /* بالاتر از همه عناصر */
+    background: var(--card-bg); /* همرنگ پس‌زمینه مودال تا متن‌ها دیده نشن */
+    width: 100%;
+    text-align: left;
+    padding: 12px 5px;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 15px; /* فاصله از پایین */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2); /* سایه ریز برای تفکیک از محتوا */
+}
+
+.anilist-back-btn:hover {
+    color: var(--primary);
+    background: rgba(30, 41, 59, 1);
+}
+
+/* ================= AniList Modal & Styles (Updated) ================= */
+
+/* دکمه آیکون AniList */
+.btn-anilist-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: transform 0.2s;
+}
+.btn-anilist-icon:hover {
+    transform: scale(1.2);
+    background: rgba(255,255,255,0.1);
+}
+.btn-anilist-icon img {
+    width: 20px;
+    height: 20px;
+}
+
+/* استایل لیست نتایج جستجو */
+.anilist-result-item {
+    display: flex;
+    gap: 15px;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.anilist-result-item:hover { background: rgba(30, 41, 59, 0.8); }
+.anilist-result-img {
+    width: 50px; height: 70px; object-fit: cover;
+    border-radius: 4px; background: #1e293b;
+}
+.anilist-result-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.anilist-result-title { font-weight: bold; color: var(--text-main); margin-bottom: 5px; font-size: 0.95rem; }
+.anilist-result-meta { font-size: 0.8rem; color: var(--text-dim); }
+
+/* استایل نمای اطلاعات کامل (با بنر) */
+.anilist-details { display: flex; flex-direction: column; gap: 15px; position: relative; }
+
+/* بنر پس‌زمینه */
+.anilist-banner {
+    width: 100%;
+    height: 140px; /* ارتفاع ثابت */
+    min-height: 140px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    background-color: #1e293b; /* رنگ پیش‌فرض اگر عکس لود نشد */
+}
+.anilist-banner::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, transparent, var(--card-bg));
+    border-radius: 8px;
+}
+
+.anilist-header-content {
+    display: flex; gap: 15px;
+    margin-top: -60px; /* کشیدن کاور به سمت بالا روی بنر */
+    padding: 0 10px; z-index: 2; position: relative;
+}
+.anilist-details-cover {
+    width: 110px; height: 160px; object-fit: cover;
+    border-radius: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.8); border: 2px solid var(--card-bg);
+}
+
+/* عنوان لینک‌دار */
+.anilist-link-title {
+    font-size: 1.3rem; color: var(--primary); font-weight: bold;
+    text-decoration: none; display: inline-block; margin-bottom: 5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.anilist-link-title:hover { color: #3b82f6; text-decoration: underline; }
+
+.anilist-badges-row {
+    display: flex; flex-wrap: wrap; gap: 6px; font-size: 0.75rem; margin-bottom: 10px;
+}
+.stat-tag {
+    background: rgba(15, 23, 42, 0.9); padding: 3px 8px; border-radius: 4px;
+    border: 1px solid var(--border); color: #cbd5e1; display: flex; align-items: center; gap: 4px;
+}
+
+.anilist-details-desc {
+    font-size: 0.9rem; line-height: 1.6; color: #cbd5e1;
+    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;
+    max-height: 150px; overflow-y: auto;
+}
+
+/* بخش انیمه‌های مرتبط */
+.anilist-relations {
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+}
+.relation-title { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px; font-weight: bold; }
+.relation-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
+.relation-item {
+    min-width: 100px; max-width: 100px;
+    background: rgba(255,255,255,0.05); border-radius: 6px;
+    padding: 5px; font-size: 0.7rem; text-align: center;
+    color: var(--text-main); text-decoration: none; display: block;
+}
+.relation-item:hover { background: rgba(255,255,255,0.1); }
+.relation-type { font-size: 0.65rem; color: var(--primary); display: block; margin-bottom: 3px; font-weight: bold;}
+
+/* ================= My Smart List Styles ================= */
+
+/* دکمه‌های آیکونی هدر کارت (گوگل و انی‌لیست) */
+.header-icon-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid transparent;
+    cursor: pointer;
+    margin-left: 5px;
+    padding: 4px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+.header-icon-btn:hover {
+    background: rgba(255,255,255,0.15);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+.header-icon-btn img {
+    width: 18px; height: 18px; object-fit: contain;
+}
+
+/* نتایج جستجو در لیست من */
+.my-list-results {
+    margin-top: 10px;
+    max-height: 500px; 
+    overflow-y: auto;
+    background: #0f172a;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: none; 
+}
+.add-item-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.2s;
+}
+.add-item-row:hover { background: #1e293b; }
+.add-item-img { width: 30px; height: 40px; border-radius: 4px; object-fit: cover; }
+/* استایل جدید برای عناوین دو خطه در جستجو */
+.add-item-info-search { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow: hidden; }
+.add-item-romaji { font-size: 0.9rem; font-weight: bold; color: var(--text-main); line-height: 1.2; display: block; }
+.add-item-english { font-size: 0.75rem; color: var(--text-dim); line-height: 1.2; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* آیتم‌های ذخیره شده (Chips) */
+.my-list-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+    gap: 8px;
+}
+.saved-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #1e293b; padding: 8px; border-radius: 8px;
+    border: 1px solid var(--border); position: relative;
+}
+.saved-item img { 
+    width: 35px; height: 50px; border-radius: 4px; object-fit: cover; 
+    cursor: pointer; transition: transform 0.2s;
+}
+.saved-item img:hover { transform: scale(1.1); filter: brightness(1.2); }
+.saved-item-info { flex: 1; overflow: hidden; }
+.saved-item-title { font-size: 0.9rem; font-weight: bold; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.saved-item-sub { font-size: 0.75rem; color: var(--text-dim); }
+.btn-remove-item {
+    background: rgba(239, 68, 68, 0.1); color: #ef4444;
+    border: none; width: 24px; height: 24px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.btn-remove-item:hover { background: #ef4444; color: white; }
+
+/* استایل‌های بخش ویرایش کلمات کلیدی */
+.saved-item-info { flex: 1; display: flex; flex-direction: column; cursor: pointer; }
+.saved-item-title { 
+    font-size: 1rem; color: var(--primary); display: block; margin-bottom: 4px; 
+    cursor: pointer; /* حالت اشاره‌گر برای عنوان */
+}
+.saved-item-title:hover { text-decoration: underline; color: white; }
+.keywords-area { font-size: 0.8rem; color: var(--text-dim); background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; border: 1px dashed #334155; }
+.keywords-area:hover { border-color: var(--primary); color: white; }
+
+/* استایل حالت ویرایش */
+.edit-keywords-box { width: 100%; display: none; margin-top: 5px; }
+.edit-keywords-box textarea { width: 100%; height: 80px; background: #0b0f1a; color: white; border: 1px solid var(--primary); border-radius: 6px; padding: 8px; font-size: 0.85rem; resize: none; font-family: inherit; }
+.edit-actions { display: flex; gap: 10px; margin-top: 5px; justify-content: flex-end; }
+.btn-edit-save { color: #22c55e; background: none; border: none; cursor: pointer; font-size: 1.1rem; }
+.btn-edit-cancel { color: #ef4444; background: none; border: none; cursor: pointer; font-size: 1.1rem; }
+
+/* استایل عنوان انگلیسی در صفحه مشخصات */
+.anilist-sub-title {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: -5px;
+    margin-bottom: 10px;
+    font-weight: 500;
 }
