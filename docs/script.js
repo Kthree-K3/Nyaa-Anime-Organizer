@@ -86,13 +86,15 @@ window.onclick = function(event) {
 // ================= الگوریتم نام پوشه =================
 function cleanTitle(raw) {
     let name = raw.trim();
+    
+    // 1. حذف محتویات داخل براکت []
     name = name.replace(/\[.*?\]/g, '');
+    
+    // 2. حذف مطلق تمام پرانتزها و محتویات داخلشان ()
+    name = name.replace(/\(.*?\)/g, '');
+    
+    // 3. تبدیل نقطه و آندرلاین به فاصله
     name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
-
-    const yearMatch = name.match(/\s\(\d+\)/);
-    if (yearMatch) {
-        name = name.substring(0, yearMatch.index + yearMatch[0].length);
-    }
 
     const stopMarkers = [
         /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
@@ -803,24 +805,26 @@ window.showAniListDetails = function(index) {
     `;
 };
 
-// نمایش لیست نتایج جستجو (این تابع جا افتاده بود)
+// نسخه جدید: نمایش ۳ خطی نتایج در جستجوی داخلی
 window.renderAniListResults = function() {
     if (!currentAniListResults || currentAniListResults.length === 0) {
-        aniListContent.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">No results found.<br>Try editing the search text.</div>';
+        aniListContent.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-dim);">No results found.</div>';
         return;
     }
 
     const html = currentAniListResults.map((anime, index) => {
-        const title = anime.title.english || anime.title.romaji || 'Unknown Title';
+        const romaji = anime.title.romaji || 'Unknown Title';
+        const english = anime.title.english || "";
         const year = anime.seasonYear || 'N/A';
-        const format = anime.format || 'TV'; // فرمت انیمه (TV, Movie, etc)
+        const format = anime.format || 'TV';
         const img = anime.coverImage.large;
 
         return `
             <div class="anilist-result-item" onclick="showAniListDetails(${index})">
                 <img src="${img}" class="anilist-result-img" alt="cover">
                 <div class="anilist-result-info">
-                    <div class="anilist-result-title">${title}</div>
+                    <span class="anilist-result-romaji">${romaji}</span>
+                    <span class="anilist-result-english">${english}</span>
                     <div class="anilist-result-meta">${year} • ${format} • ${anime.status}</div>
                 </div>
             </div>

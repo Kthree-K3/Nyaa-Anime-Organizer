@@ -45,7 +45,7 @@ body {
 }
 
 /* --- Toggle Switch --- */
-.toggle-wrapper { display: flex; align-items: center; gap: 10px; background: #1e293b; padding: 8px 15px; border-radius: 10px; border: 1px solid var(--border); }
+
 .toggle-label { font-size: 0.85rem; color: var(--text-dim); }
 .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -380,7 +380,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     border-radius: 4px; background: #1e293b;
 }
 .anilist-result-info { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.anilist-result-title { font-weight: bold; color: var(--text-main); margin-bottom: 5px; font-size: 0.95rem; }
+
 .anilist-result-meta { font-size: 0.8rem; color: var(--text-dim); }
 
 /* استایل نمای اطلاعات کامل (با بنر) */
@@ -567,3 +567,23 @@ input:checked + .slider:before { transform: translateX(22px); }
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
 }
+
+/* ظاهر جدید دکمه My Anime List */
+.toggle-wrapper { 
+    display: flex; align-items: center; gap: 12px; 
+    background: rgba(30, 41, 59, 0.7); 
+    padding: 6px 15px; border-radius: 12px; 
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.toggle-wrapper:hover {
+    background: rgba(30, 41, 59, 1);
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.1);
+}
+
+/* استایل ۳ خطی برای نتایج جستجوی AniList داخل پوشه‌ها */
+.anilist-result-romaji { font-weight: bold; color: var(--primary); font-size: 0.95rem; display: block; line-height: 1.2; }
+.anilist-result-english { font-size: 0.75rem; color: var(--text-dim); display: block; margin: 2px 0 4px 0; }
+.anilist-result-meta { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
