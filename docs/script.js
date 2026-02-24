@@ -308,6 +308,63 @@ async function searchAniListForAdd(query) {
         myListSearchResults.innerHTML = '<div style="padding:10px; color:red;">Error fetching data.</div>'; 
     }
 }
+
+// ================= منطق Export و Import لیست انیمه‌ها =================
+
+const btnExportList = document.getElementById('btnExportList');
+const btnImportList = document.getElementById('btnImportList');
+const importFileInput = document.getElementById('importFileInput');
+
+// خروجی گرفتن از لیست به صورت فایل JSON
+btnExportList.onclick = function() {
+    if (mySavedList.length === 0) {
+        alert("Your list is empty!");
+        return;
+    }
+    const dataStr = JSON.stringify(mySavedList, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `my_anime_list_${new Date().toISOString().slice(0,10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    log("List exported to JSON file.", "success");
+};
+
+// باز کردن پنجره انتخاب فایل برای ایمپورت
+btnImportList.onclick = () => importFileInput.click();
+
+// خواندن فایل و جایگزینی در دیتابیس محلی
+importFileInput.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (Array.isArray(importedData)) {
+                if (confirm(`Import ${importedData.length} items? This will replace your current list.`)) {
+                    mySavedList = importedData;
+                    localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
+                    renderMySavedList();
+                    log("List imported successfully.", "success");
+                }
+            } else {
+                throw new Error("Invalid file format.");
+            }
+        } catch (err) {
+            alert("Error: The file is not a valid JSON list.");
+            log("Import failed: Invalid JSON.", "error");
+        }
+    };
+    reader.readAsText(file);
+    // ریست کردن ورودی فایل برای استفاده‌های بعدی
+    this.value = '';
+};
+
 // ================= عملیات اسکن اصلی (یکپارچه با لیست هوشمند) =================
 async function startScanner() {
     if (isScanning) { isScanning = false; log("Stopping scan...", "error"); return; }
