@@ -708,6 +708,7 @@ async function searchAniList(searchQuery) {
                 status
                 seasonYear
                 format
+                nextAiringEpisode { episode }
                 genres
                 studios(isMain: true) { nodes { name } }
                 relations {
@@ -757,7 +758,14 @@ window.showAniListDetails = function(index) {
     const desc = anime.description ? anime.description.replace(/<br><br>/g, '<br>').replace(/<[^>]+>/g, '') : 'No description available.';
     const score = anime.averageScore ? anime.averageScore + '%' : 'N/A';
     const studio = anime.studios && anime.studios.nodes.length > 0 ? anime.studios.nodes[0].name : 'Unknown Studio';
-    
+    // محاسبه قسمت‌های پخش شده
+let airedCount = anime.episodes || '?';
+if (anime.nextAiringEpisode) {
+    airedCount = anime.nextAiringEpisode.episode - 1;
+} else if (anime.status === 'FINISHED') {
+    airedCount = anime.episodes || '?';
+}
+const epDisplay = (airedCount === anime.episodes) ? airedCount : `${airedCount} / ${anime.episodes || '?'}`;
     let relationsHtml = '';
     if (anime.relations && anime.relations.edges.length > 0) {
         relationsHtml = `<div class="anilist-relations"><div class="relation-title">Related Anime:</div><div class="relation-grid">` + 
@@ -780,18 +788,22 @@ window.showAniListDetails = function(index) {
             
             <div class="anilist-header-content">
                 <img src="${img}" class="anilist-details-cover" alt="cover">
-                <div style="flex:1; padding-top:60px;">
+                <div style="flex:1; padding-top:40px;">
+                    <!-- بخش عنوان دو خطی -->
                     <div style="display: flex; flex-direction: column;">
-        <a href="${anime.siteUrl}" target="_blank" class="anilist-link-title" title="Open in AniList">
-            ${romaji} <i class="fas fa-external-link-alt" style="font-size:0.7em; vertical-align:middle;"></i>
-        </a>
-        <div class="anilist-sub-title">${english}</div>
-    </div>
+                        <a href="${anime.siteUrl}" target="_blank" class="anilist-link-title" title="Open in AniList">
+                            ${romaji} <i class="fas fa-external-link-alt" style="font-size:0.7em; vertical-align:middle;"></i>
+                        </a>
+                        <div class="anilist-sub-title">${english}</div>
+                    </div>
                     
+                    <!-- بخش نشان‌ها (Badges) با تمام موارد درخواستی -->
                     <div class="anilist-badges-row">
                         <span class="stat-tag"><i class="fas fa-star" style="color:#eab308"></i> ${score}</span>
                         <span class="stat-tag"><i class="fas fa-film"></i> ${anime.format || 'TV'}</span>
-                        <span class="stat-tag"><i class="fas fa-video"></i> ${anime.episodes || '?'} Eps</span>
+                        <span class="stat-tag"><i class="fas fa-video"></i> ${epDisplay} Eps</span>
+                        <span class="stat-tag"><i class="fas fa-calendar"></i> ${anime.seasonYear || 'N/A'}</span>
+                        <span class="stat-tag"><i class="fas fa-info-circle"></i> ${anime.status}</span>
                         <span class="stat-tag"><i class="fas fa-building"></i> ${studio}</span>
                     </div>
                 </div>
@@ -846,7 +858,7 @@ window.openAnimeInfoById = async function(id) {
         Media (id: $id, type: ANIME) {
             id siteUrl title { romaji english }
             coverImage { large } bannerImage description(asHtml: false)
-            averageScore episodes status seasonYear format genres
+            averageScore episodes status seasonYear format nextAiringEpisode { episode } genres
             studios(isMain: true) { nodes { name } }
             relations {
                 edges {
