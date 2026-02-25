@@ -587,3 +587,12 @@ input:checked + .slider:before { transform: translateX(22px); }
 .anilist-result-romaji { font-weight: bold; color: var(--primary); font-size: 0.95rem; display: block; line-height: 1.2; }
 .anilist-result-english { font-size: 0.75rem; color: var(--text-dim); display: block; margin: 2px 0 4px 0; }
 .anilist-result-meta { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; }
+
+#aniListSearchInput, 
+#myListSearchInput {
+    padding-left: 12px !important; 
+}
+
+#aniListSearchInput {
+    padding-right: 12px !important;
+}
