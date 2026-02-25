@@ -138,16 +138,42 @@ btnScan.onclick = startScanner;
 
 // ================= منطق مدیریت لیست هوشمند (Smart Watchlist Logic) =================
 
-// کد جدید که جایگزین می‌شود (با تمام اصلاحات)
-// ================= منطق مدیریت لیست هوشمند (Smart Watchlist Logic) =================
-
-// کد جدید و اصلاح شده که جایگزین می‌شود
-// ================= منطق مدیریت لیست هوشمند (Smart Watchlist) =================
-
 btnOpenMyList.onclick = function() {
     modal.style.display = "block";
     renderMySavedList();
     myListSearchInput.focus();
+
+    // بررسی وجود فیلتر در بخش لیست من
+    let myListSort = document.getElementById('myListSortSelect');
+    if (!myListSort) {
+        // پیدا کردن محل قرارگیری (کنار دکمه سرچ)
+        const searchWrapper = document.querySelector('#myListModal .search-wrapper');
+        const searchBtn = document.getElementById('btnSearchForList');
+
+        myListSort = document.createElement('select');
+        myListSort.id = 'myListSortSelect';
+        myListSort.className = 'res-filter';
+        // کمی فاصله از چپ و راست
+        myListSort.style.margin = '0 5px';
+        
+        myListSort.innerHTML = `
+            <option value="START_DATE_DESC" selected>Date</option>
+            <option value="POPULARITY_DESC">Popularity</option>
+        `;
+        
+        // اگر متنی نوشته شده بود و فیلتر تغییر کرد، دوباره سرچ کن
+        myListSort.onchange = () => {
+            if(myListSearchInput.value.trim()) {
+                searchAniListForAdd(myListSearchInput.value);
+            }
+        };
+        
+        // اضافه کردن قبل از دکمه + (Search)
+        searchWrapper.insertBefore(myListSort, searchBtn);
+    } else {
+        // ریست به پیش‌فرض
+        myListSort.value = "START_DATE_DESC";
+    }
 };
 
 btnCloseMyList.onclick = function() {
@@ -262,17 +288,23 @@ myListSearchInput.onkeypress = (e) => { if (e.key === 'Enter') searchAniListForA
 // جستجو با نمایش دوخطی و بستن خودکار باکس نتایج
 async function searchAniListForAdd(query) {
     if (!query.trim()) return;
+    
+    // گرفتن مقدار فیلتر مربوط به این مودال
+    const sortSelect = document.getElementById('myListSortSelect');
+    const sortValue = sortSelect ? sortSelect.value : 'START_DATE_DESC';
+
     myListSearchResults.style.display = 'block';
     clearMyListSearch.style.display = 'block';
     myListSearchResults.innerHTML = '<div style="padding:10px; color:gray;">Searching...</div>';
 
-    const gql = `query ($s: String) { Page(perPage: 10) { media(search: $s, type: ANIME) { id title { romaji english } coverImage { medium } } } }`;
+    // کوئری با پشتیبانی از $sort
+    const gql = `query ($s: String, $sort: [MediaSort]) { Page(perPage: 10) { media(search: $s, type: ANIME, sort: $sort) { id title { romaji english } coverImage { medium } } } }`;
     
     try {
         const res = await fetch('https://graphql.anilist.co', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ query: gql, variables: { s: query } })
+            body: JSON.stringify({ query: gql, variables: { s: query, sort: sortValue } })
         });
         const json = await res.json();
         myListSearchResults.innerHTML = '';
@@ -673,11 +705,38 @@ btnCloseAnimeInfo.onclick = function() {
     infoModal.style.display = "none";
 };
 
-// باز کردن مودال و شروع جستجوی خودکار
 window.openAnimeInfo = function(idx) {
     const groupName = allGroups[idx].name;
     aniListSearchInput.value = groupName;
     infoModal.style.display = "block";
+
+    // بررسی وجود فیلتر؛ اگر نبود ساخته شود
+    let sortSelect = document.getElementById('aniListSortSelect');
+    if (!sortSelect) {
+        const wrapper = document.querySelector('#animeInfoModal .search-wrapper');
+        sortSelect = document.createElement('select');
+        sortSelect.id = 'aniListSortSelect';
+        sortSelect.className = 'res-filter'; // استفاده از استایل دکمه‌های موجود
+        sortSelect.style.marginLeft = '10px';
+        
+        // گزینه‌ها: تاریخ (پیش‌فرض) و محبوبیت
+        sortSelect.innerHTML = `
+            <option value="START_DATE_DESC" selected>Sort: Date</option>
+            <option value="POPULARITY_DESC">Sort: Popularity</option>
+        `;
+        
+        // با تغییر فیلتر، جستجو مجدد انجام شود
+        sortSelect.onchange = () => {
+            searchAniList(aniListSearchInput.value);
+        };
+        
+        wrapper.appendChild(sortSelect);
+    } else {
+        // ریست کردن به حالت پیش‌فرض (تاریخ) در هر بار باز شدن
+        sortSelect.value = "START_DATE_DESC";
+    }
+
+    // شروع جستجو
     searchAniList(groupName);
 };
 
@@ -687,16 +746,20 @@ aniListSearchInput.onkeypress = function(e) {
     if (e.key === 'Enter') searchAniList(this.value);
 };
 
-// ارسال درخواست به API سایت AniList (آپدیت شده با گزینه‌های جدید)
 async function searchAniList(searchQuery) {
     if (!searchQuery.trim()) return;
     
+    // خواندن مقدار فیلتر (اگر ساخته نشده بود پیش‌فرض تاریخ باشد)
+    const sortSelect = document.getElementById('aniListSortSelect');
+    const sortValue = sortSelect ? sortSelect.value : 'START_DATE_DESC';
+    
     aniListContent.innerHTML = '<div style="text-align:center; padding:20px; color:var(--primary);"><i class="fas fa-spinner spinning" style="font-size: 2rem;"></i><div style="margin-top:10px;">Searching AniList...</div></div>';
     
+    // کوئری آپدیت شده با متغیر $sort
     const query = `
-    query ($search: String) {
+    query ($search: String, $sort: [MediaSort]) {
         Page (page: 1, perPage: 10) {
-            media (search: $search, type: ANIME, sort: START_DATE_DESC) {
+            media (search: $search, type: ANIME, sort: $sort) {
                 id
                 siteUrl
                 title { romaji english }
@@ -721,7 +784,7 @@ async function searchAniList(searchQuery) {
         }
     }`;
 
-    const variables = { search: searchQuery };
+    const variables = { search: searchQuery, sort: sortValue };
     const url = 'https://graphql.anilist.co';
     const options = {
         method: 'POST',
@@ -742,15 +805,14 @@ async function searchAniList(searchQuery) {
     }
 }
 
-// نمایش جزئیات کامل (آپدیت شده: بنر، لینک، استودیو، ریلیشن)
-// نمایش جزئیات کامل (اصلاح شده برای نمایش صحیح بنر)
+// نمایش جزئیات کامل (اصلاح شده: عکس وسط، متن زیر عکس)
+// نمایش جزئیات کامل (اصلاح نهایی: حذف Gap مزاحم برای کاهش فاصله)
 window.showAniListDetails = function(index) {
     const anime = currentAniListResults[index];
     const romaji = anime.title.romaji || 'Unknown Title';
     const english = anime.title.english || "";
     const img = anime.coverImage.large;
     
-    // اگر بنر نال بود، یک تصویر گرادینت پیش‌فرض استفاده می‌کنیم
     const bannerStyle = anime.bannerImage 
         ? `background-image: url('${anime.bannerImage}');` 
         : `background: linear-gradient(45deg, #334155, #0f172a);`;
@@ -758,14 +820,15 @@ window.showAniListDetails = function(index) {
     const desc = anime.description ? anime.description.replace(/<br><br>/g, '<br>').replace(/<[^>]+>/g, '') : 'No description available.';
     const score = anime.averageScore ? anime.averageScore + '%' : 'N/A';
     const studio = anime.studios && anime.studios.nodes.length > 0 ? anime.studios.nodes[0].name : 'Unknown Studio';
-    // محاسبه قسمت‌های پخش شده
-let airedCount = anime.episodes || '?';
-if (anime.nextAiringEpisode) {
-    airedCount = anime.nextAiringEpisode.episode - 1;
-} else if (anime.status === 'FINISHED') {
-    airedCount = anime.episodes || '?';
-}
-const epDisplay = (airedCount === anime.episodes) ? airedCount : `${airedCount} / ${anime.episodes || '?'}`;
+    
+    let airedCount = anime.episodes || '?';
+    if (anime.nextAiringEpisode) {
+        airedCount = anime.nextAiringEpisode.episode - 1;
+    } else if (anime.status === 'FINISHED') {
+        airedCount = anime.episodes || '?';
+    }
+    const epDisplay = (airedCount === anime.episodes) ? airedCount : `${airedCount} / ${anime.episodes || '?'}`;
+
     let relationsHtml = '';
     if (anime.relations && anime.relations.edges.length > 0) {
         relationsHtml = `<div class="anilist-relations"><div class="relation-title">Related Anime:</div><div class="relation-grid">` + 
@@ -783,22 +846,23 @@ const epDisplay = (airedCount === anime.episodes) ? airedCount : `${airedCount} 
         </button>
         
         <div class="anilist-details ltr-content">
-            <!-- بنر با استایل درون‌خطی -->
             <div class="anilist-banner" style="${bannerStyle}"></div>
             
-            <div class="anilist-header-content">
-                <img src="${img}" class="anilist-details-cover" alt="cover">
-                <div style="flex:1; padding-top:40px;">
-                    <!-- بخش عنوان دو خطی -->
-                    <div style="display: flex; flex-direction: column;">
+            
+            <div class="anilist-header-content" style="flex-direction: column; align-items: center; text-align: center; margin-top: -80px; gap: 5px;">
+                
+                
+                <img src="${img}" class="anilist-details-cover" alt="cover" style="margin-bottom: 0;">
+                
+                <div style="width: 100%;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
                         <a href="${anime.siteUrl}" target="_blank" class="anilist-link-title" title="Open in AniList">
                             ${romaji} <i class="fas fa-external-link-alt" style="font-size:0.7em; vertical-align:middle;"></i>
                         </a>
                         <div class="anilist-sub-title">${english}</div>
                     </div>
                     
-                    <!-- بخش نشان‌ها (Badges) با تمام موارد درخواستی -->
-                    <div class="anilist-badges-row">
+                     <div class="anilist-badges-row" style="justify-content: center; margin-bottom: 5px;">
                         <span class="stat-tag"><i class="fas fa-star" style="color:#eab308"></i> ${score}</span>
                         <span class="stat-tag"><i class="fas fa-film"></i> ${anime.format || 'TV'}</span>
                         <span class="stat-tag"><i class="fas fa-video"></i> ${epDisplay} Eps</span>
@@ -809,7 +873,8 @@ const epDisplay = (airedCount === anime.episodes) ? airedCount : `${airedCount} 
                 </div>
             </div>
 
-            <div style="padding: 15px 10px;">
+            
+            <div style="padding: 0px 10px 15px 10px;">
                 <div class="anilist-details-desc">${desc}</div>
                 ${relationsHtml}
             </div>
