@@ -695,8 +695,8 @@ async function searchAniList(searchQuery) {
     
     const query = `
     query ($search: String) {
-        Page (page: 1, perPage: 5) {
-            media (search: $search, type: ANIME, sort: POPULARITY_DESC) {
+        Page (page: 1, perPage: 10) {
+            media (search: $search, type: ANIME, sort: START_DATE_DESC) {
                 id
                 siteUrl
                 title { romaji english }
