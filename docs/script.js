@@ -721,8 +721,8 @@ window.openAnimeInfo = function(idx) {
         
         // گزینه‌ها: تاریخ (پیش‌فرض) و محبوبیت
         sortSelect.innerHTML = `
-            <option value="START_DATE_DESC" selected>Sort: Date</option>
-            <option value="POPULARITY_DESC">Sort: Popularity</option>
+            <option value="START_DATE_DESC" selected>Date</option>
+            <option value="POPULARITY_DESC">Popularity</option>
         `;
         
         // با تغییر فیلتر، جستجو مجدد انجام شود
