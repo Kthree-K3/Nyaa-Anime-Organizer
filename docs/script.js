@@ -130,12 +130,14 @@ function cleanTitle(raw) {
     name = name.replace(/\[.*?\]/g, '');
     
     // 2. حذف مطلق تمام پرانتزها و محتویات داخلشان ()
+    name = name.replace(/(\s\(.*?\))\s.*/, '$1');
     name = name.replace(/\(.*?\)/g, '');
     
     // 3. تبدیل نقطه و آندرلاین به فاصله
     name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
 
     const stopMarkers = [
+        /\sEpisode\s?\d+/i,
         /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
         /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
         /\sEp\s?\d+/i, /\s\d{2,}\s/,
