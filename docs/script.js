@@ -6,6 +6,7 @@ const SIMILARITY_THRESHOLD = 0.5;
 let allGroups = []; 
 let isScanning = false;
 let allFetchedData = [];
+let scanAbortController = null;
 
 const btnScan = document.getElementById('btnScan');
 const btnIcon = document.getElementById('scan-icon');
