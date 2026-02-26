@@ -30,43 +30,47 @@ const myListContainer = document.getElementById('myListContainer');
 
 const clearMyListSearch = document.getElementById('clearMyListSearch');
 
-// ================= بخش جستجو (اصلاح شده: جستجو در محتوای فایل‌ها) =================
 searchInput.oninput = function() {
-    const query = this.value.toLowerCase();
-    clearSearch.style.display = query ? 'block' : 'none';
-    
+    const query = this.value.toLowerCase().trim();
+    clearSearch.style.display = query.length > 0 ? 'block' : 'none';
+
     const cards = document.querySelectorAll('.anime-card');
 
+    // اگر باکس جستجو خالی شد، همه چیز را به حالت اول برگردان
+    if (query.length === 0) {
+        cards.forEach(card => {
+            card.style.display = 'block'; // نمایش پوشه
+            card.querySelector('.episodes-list').style.display = 'none'; // بستن لیست
+            card.querySelectorAll('.episode-item').forEach(ep => ep.style.display = 'flex'); // نمایش همه فایل‌ها
+        });
+        return;
+    }
+
+    // عملیات جستجو
     cards.forEach(card => {
-        // پیدا کردن لیست فایل‌های داخل کارت
-        const episodesListContainer = card.querySelector('.episodes-list');
+        const listContainer = card.querySelector('.episodes-list');
         const episodes = card.querySelectorAll('.episode-item');
-        let hasVisibleEpisodes = false;
+        let matchFoundInCard = false;
 
         episodes.forEach(ep => {
-            // پیدا کردن عنوان فایل
-            const titleEl = ep.querySelector('.ep-raw-title');
-            const titleText = titleEl ? titleEl.innerText.toLowerCase() : '';
+            // گرفتن متن خام از توی HTML (همونی که شامل [DKB] و ... هست)
+            const rawTitleEl = ep.querySelector('.ep-raw-title');
+            const rawText = rawTitleEl ? rawTitleEl.innerText.toLowerCase() : '';
 
-            // بررسی تطابق متن
-            if (titleText.includes(query)) {
-                ep.style.display = 'flex'; // نمایش فایل (چون فلکس است)
-                hasVisibleEpisodes = true;
+            // بررسی تطابق
+            if (rawText.includes(query)) {
+                ep.style.display = 'flex'; // این فایل رو نشون بده
+                matchFoundInCard = true;
             } else {
-                ep.style.display = 'none'; // مخفی کردن فایل
+                ep.style.display = 'none'; // این فایل رو مخفی کن
             }
         });
 
-        // مدیریت نمایش کلی کارت (پوشه)
-        if (hasVisibleEpisodes) {
-            card.style.display = 'block';
-            
-            // اگر جستجو انجام شده، لیست کشویی را باز کن تا کاربر فایل را ببیند
-            if (query.trim() !== '') {
-                episodesListContainer.style.display = 'block';
-            }
+        if (matchFoundInCard) {
+            card.style.display = 'block'; // کارت رو نشون بده
+            listContainer.style.display = 'block'; // *** لیست رو باز کن تا نتیجه دیده بشه ***
         } else {
-            card.style.display = 'none';
+            card.style.display = 'none'; // کلاً کارت رو مخفی کن
         }
     });
 };
@@ -104,17 +108,11 @@ clearSearch.onclick = function() {
     searchInput.value = '';
     this.style.display = 'none';
     
-    // بازگرداندن همه چیز به حالت اولیه
+    // بازنشانی همه چیز به حالت بسته و مرتب
     document.querySelectorAll('.anime-card').forEach(card => {
-        card.style.display = 'block'; // نمایش کارت
-        
-        // بستن لیست کشویی (اختیاری: اگر می‌خواهید باز بمانند این خط را حذف کنید)
-        card.querySelector('.episodes-list').style.display = 'none';
-
-        // نمایش مجدد تمام فایل‌های داخل کارت
-        card.querySelectorAll('.episode-item').forEach(ep => {
-            ep.style.display = 'flex';
-        });
+        card.style.display = 'block';
+        card.querySelector('.episodes-list').style.display = 'none'; // بستن لیست‌ها
+        card.querySelectorAll('.episode-item').forEach(ep => ep.style.display = 'flex');
     });
     
     searchInput.focus();
