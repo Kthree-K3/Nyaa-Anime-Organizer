@@ -5,6 +5,7 @@ const SIMILARITY_THRESHOLD = 0.5;
 
 let allGroups = []; 
 let isScanning = false;
+let allFetchedData = [];
 
 const btnScan = document.getElementById('btnScan');
 const btnIcon = document.getElementById('scan-icon');
@@ -175,6 +176,10 @@ function getSimilarity(s1, s2) {
 btnScan.onclick = startScanner;
 
 // ================= منطق مدیریت لیست هوشمند (Smart Watchlist Logic) =================
+
+myListFilter.onchange = function() {
+    refreshData();
+};
 
 btnOpenMyList.onclick = function() {
     modal.style.display = "block";
@@ -442,8 +447,8 @@ async function startScanner() {
     if (isScanning) { isScanning = false; log("Stopping scan...", "error"); return; }
     isScanning = true;
     const rangeMode = document.getElementById('dateRange').value;
-    const isMyListEnabled = myListFilter.checked;
     
+    // دکمه‌ها و ظاهر
     btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
@@ -463,7 +468,7 @@ async function startScanner() {
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
-    let collectedData = [];
+    allFetchedData = []; // پاک کردن حافظه قبلی
     let page = 1;
     let keepScanning = true;
 
@@ -495,27 +500,23 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
-                // پیدا کردن شناسه انیمه در لیست من
+                // بررسی تطابق با لیست من (بدون حذف کردن)
                 let matchedId = null;
-                if (isMyListEnabled && mySavedList.length > 0) {
+                if (mySavedList.length > 0) {
                     const matchedAnime = mySavedList.find(anime => {
                         const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
                         return keywordList.some(keyword => lowerRawTitle.includes(keyword.trim()));
                     });
-                    
-                    if (matchedAnime) {
-                        matchedId = matchedAnime.id;
-                    } else {
-                        continue; // اگر در لیست نبود رد کن
-                    }
+                    if (matchedAnime) matchedId = matchedAnime.id;
                 }
 
                 let status = tr.classList.contains('success') ? 'trusted' : (tr.classList.contains('danger') ? 'remake' : 'normal');
 
-                collectedData.push({
+                // ذخیره همه آیتم‌ها در متغیر سراسری
+                allFetchedData.push({
                     rawTitle,
                     cleanName: cleanTitle(rawTitle),
-                    watchlistId: matchedId, // فقط شناسه را نگه می‌داریم برای گروه‌بندی
+                    watchlistId: matchedId, // شناسه مچ شده (اگر بود)
                     link: TARGET_DOMAIN + linkEl.getAttribute('href'),
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
@@ -532,8 +533,10 @@ async function startScanner() {
             page++;
             await new Promise(r => setTimeout(r, 1200));
         }
-        organizeGroups(collectedData);
-        renderUI();
+        
+        // در پایان اسکن، تابع نمایش را صدا می‌زنیم
+        refreshData();
+        
         log(isScanning ? "Task Complete." : "Scan Aborted.", isScanning ? 'success' : 'info');
     } catch (e) { log(`Error: ${e.message}`, 'error'); } 
     finally {
@@ -544,6 +547,29 @@ async function startScanner() {
         btnText.innerText = "Start scanning";
         searchInput.disabled = false;
     }
+}
+
+// تابع جدید: اعمال فیلتر و بازسازی گروه‌ها بدون اسکن مجدد
+function refreshData() {
+    // اگر داده‌ای دانلود نشده، کاری نکن
+    if (allFetchedData.length === 0) return;
+
+    const isMyListEnabled = myListFilter.checked;
+    let dataProcess = [];
+
+    if (isMyListEnabled) {
+        // اگر فیلتر روشن است، فقط آنهایی که در لیست هستند (watchlistId دارند) را جدا کن
+        dataProcess = allFetchedData.filter(item => item.watchlistId !== null);
+    } else {
+        // اگر فیلتر خاموش است، همه داده‌های دانلود شده را نشان بده
+        dataProcess = allFetchedData;
+    }
+    
+    // ارسال داده‌های فیلتر شده به تابع گروه‌بندی
+    organizeGroups(dataProcess);
+    
+    // بازسازی ظاهر گرافیکی
+    renderUI();
 }
 
 function organizeGroups(data) {
@@ -698,6 +724,7 @@ function renderUI() {
             </div>
         `;
         grid.appendChild(card);
+        updateSortBarUI(i);
     });
 }
 
@@ -1002,11 +1029,11 @@ window.openAnimeInfoById = async function(id) {
         const json = await response.json();
         
         if (json.data && json.data.Media) {
-            // قرار دادن نتیجه در آرایه موقت و نمایش آن
+            
             currentAniListResults = [json.data.Media];
             showAniListDetails(0); 
             
-            // مخفی کردن دکمه Back چون در این حالت به نتایج جستجو برنمی‌گردیم
+            
             const backBtn = document.querySelector('.anilist-back-btn');
             if(backBtn) backBtn.style.display = 'none';
         }
@@ -1014,3 +1041,4 @@ window.openAnimeInfoById = async function(id) {
         aniListContent.innerHTML = `<div style="color:var(--error); padding:20px; text-align:center;">Error loading details.</div>`;
     }
 };
+
