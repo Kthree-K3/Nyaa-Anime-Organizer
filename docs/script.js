@@ -30,49 +30,9 @@ const myListContainer = document.getElementById('myListContainer');
 
 const clearMyListSearch = document.getElementById('clearMyListSearch');
 
-searchInput.oninput = function() {
-    const query = this.value.toLowerCase().trim();
-    clearSearch.style.display = query.length > 0 ? 'block' : 'none';
-
-    const cards = document.querySelectorAll('.anime-card');
-
-    // اگر باکس جستجو خالی شد، همه چیز را به حالت اول برگردان
-    if (query.length === 0) {
-        cards.forEach(card => {
-            card.style.display = 'block'; // نمایش پوشه
-            card.querySelector('.episodes-list').style.display = 'none'; // بستن لیست
-            card.querySelectorAll('.episode-item').forEach(ep => ep.style.display = 'flex'); // نمایش همه فایل‌ها
-        });
-        return;
-    }
-
-    // عملیات جستجو
-    cards.forEach(card => {
-        const listContainer = card.querySelector('.episodes-list');
-        const episodes = card.querySelectorAll('.episode-item');
-        let matchFoundInCard = false;
-
-        episodes.forEach(ep => {
-            // گرفتن متن خام از توی HTML (همونی که شامل [DKB] و ... هست)
-            const rawTitleEl = ep.querySelector('.ep-raw-title');
-            const rawText = rawTitleEl ? rawTitleEl.innerText.toLowerCase() : '';
-
-            // بررسی تطابق
-            if (rawText.includes(query)) {
-                ep.style.display = 'flex'; // این فایل رو نشون بده
-                matchFoundInCard = true;
-            } else {
-                ep.style.display = 'none'; // این فایل رو مخفی کن
-            }
-        });
-
-        if (matchFoundInCard) {
-            card.style.display = 'block'; // کارت رو نشون بده
-            listContainer.style.display = 'block'; // *** لیست رو باز کن تا نتیجه دیده بشه ***
-        } else {
-            card.style.display = 'none'; // کلاً کارت رو مخفی کن
-        }
-    });
+// منطق دکمه پاکسازی در لیست من
+myListSearchInput.oninput = function() {
+    clearMyListSearch.style.display = this.value ? 'block' : 'none';
 };
 
 clearMyListSearch.onclick = function() {
@@ -94,13 +54,44 @@ function log(msg, type = 'info') {
     debugConsole.scrollTop = debugConsole.scrollHeight;
 }
 
-// ================= بخش جستجو =================
 searchInput.oninput = function() {
-    const query = this.value.toLowerCase();
-    clearSearch.style.display = query ? 'block' : 'none';
-    document.querySelectorAll('.anime-card').forEach(card => {
-        const title = card.getAttribute('data-title').toLowerCase();
-        card.style.display = title.includes(query) ? 'block' : 'none';
+    const query = this.value.toLowerCase().trim();
+    clearSearch.style.display = query.length > 0 ? 'block' : 'none';
+    const cards = document.querySelectorAll('.anime-card');
+
+    if (query.length === 0) {
+        cards.forEach(card => {
+            card.style.display = '';
+            const list = card.querySelector('.episodes-list');
+            if (list) list.style.display = 'none';
+            card.querySelectorAll('.episode-item').forEach(item => item.style.display = '');
+        });
+        return;
+    }
+
+    cards.forEach(card => {
+        const listContainer = card.querySelector('.episodes-list');
+        const items = card.querySelectorAll('.episode-item');
+        let hasMatch = false;
+
+        items.forEach(item => {
+            const titleEl = item.querySelector('.ep-raw-title');
+            const text = titleEl ? titleEl.textContent.toLowerCase() : '';
+            
+            if (text.includes(query)) {
+                item.style.display = '';
+                hasMatch = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (hasMatch) {
+            card.style.display = '';
+            if (listContainer) listContainer.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
     });
 };
 
@@ -108,11 +99,11 @@ clearSearch.onclick = function() {
     searchInput.value = '';
     this.style.display = 'none';
     
-    // بازنشانی همه چیز به حالت بسته و مرتب
     document.querySelectorAll('.anime-card').forEach(card => {
-        card.style.display = 'block';
-        card.querySelector('.episodes-list').style.display = 'none'; // بستن لیست‌ها
-        card.querySelectorAll('.episode-item').forEach(ep => ep.style.display = 'flex');
+        card.style.display = '';
+        const list = card.querySelector('.episodes-list');
+        if (list) list.style.display = 'none';
+        card.querySelectorAll('.episode-item').forEach(item => item.style.display = '');
     });
     
     searchInput.focus();
