@@ -461,7 +461,6 @@ async function startScanner() {
     else if (rangeMode === '6d') { cutoffDate.setDate(cutoffDate.getDate() - 5); cutoffDate.setHours(0, 0, 0, 0); }
     else if (rangeMode === '7d') { cutoffDate.setDate(cutoffDate.getDate() - 6); cutoffDate.setHours(0, 0, 0, 0); }
 
-
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
     let collectedData = [];
@@ -471,7 +470,7 @@ async function startScanner() {
     try {
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
-            const response = await fetch(`${MY_WORKER_URL}/?c=1_2&p=${page}`);
+            const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
             const htmlText = await response.text();
             if (!isScanning) break;
 
@@ -496,19 +495,27 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
+                // پیدا کردن شناسه انیمه در لیست من
+                let matchedId = null;
                 if (isMyListEnabled && mySavedList.length > 0) {
-    const matchFound = mySavedList.some(anime => {
-        const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-        return keywordList.some(keyword => lowerRawTitle.includes(keyword.trim()));
-    });
-    if (!matchFound) continue;
-}
+                    const matchedAnime = mySavedList.find(anime => {
+                        const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
+                        return keywordList.some(keyword => lowerRawTitle.includes(keyword.trim()));
+                    });
+                    
+                    if (matchedAnime) {
+                        matchedId = matchedAnime.id;
+                    } else {
+                        continue; // اگر در لیست نبود رد کن
+                    }
+                }
 
                 let status = tr.classList.contains('success') ? 'trusted' : (tr.classList.contains('danger') ? 'remake' : 'normal');
 
                 collectedData.push({
                     rawTitle,
                     cleanName: cleanTitle(rawTitle),
+                    watchlistId: matchedId, // فقط شناسه را نگه می‌داریم برای گروه‌بندی
                     link: TARGET_DOMAIN + linkEl.getAttribute('href'),
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
@@ -517,7 +524,7 @@ async function startScanner() {
                     fullDate: itemDate,
                     status: status,
                     seeds: tds[5].innerText.trim(), 
-                    peers: tds[6].innerText.trim()  
+                    peers: tds[6].innerText.trim()
                 });
             }
             log(`Page ${page}: Done.`, 'success');
@@ -542,14 +549,27 @@ async function startScanner() {
 function organizeGroups(data) {
     allGroups = [];
     
-    // 1. دسته‌بندی اولیه بر اساس شباهت
     data.forEach(item => {
-        let g = allGroups.find(x => getSimilarity(x.name, item.cleanName) > SIMILARITY_THRESHOLD);
+        let g;
+
+        // گام ۱: پیدا کردن گروه
+        // اگر شناسه لیست دارد، فقط با شناسه پیدا کن (ادغام نام‌های مختلف یک انیمه)
+        if (item.watchlistId) {
+            g = allGroups.find(x => x.watchlistId === item.watchlistId);
+        }
+
+        // اگر شناسه ندارد (یا پیدا نشد)، با روش قدیمی شباهت اسم پیدا کن
+        if (!g) {
+            g = allGroups.find(x => !x.watchlistId && getSimilarity(x.name, item.cleanName) > SIMILARITY_THRESHOLD);
+        }
+
         if (g) {
             g.items.push(item);
         } else {
+            // ساخت گروه جدید (نام موقت می‌گذاریم، پایین اصلاح می‌شود)
             allGroups.push({ 
-                name: item.cleanName, // نام موقت
+                name: item.cleanName, 
+                watchlistId: item.watchlistId || null,
                 items: [item], 
                 currentSort: 'date', 
                 isAsc: false,
@@ -558,13 +578,13 @@ function organizeGroups(data) {
         }
     });
 
-    // 2. اصلاح نام گروه: انتخاب نامی که بیشترین تکرار را دارد
+    // گام ۲: تعیین نام نهایی پوشه بر اساس "پرتکرارترین نام"
     allGroups.forEach(group => {
         const nameCounts = {};
         let maxCount = 0;
-        let bestName = group.name;
+        let bestName = group.name; // نام پیش‌فرض
 
-        // شمارش تکرار هر نام تمیز شده در گروه
+        // شمارش تمام نام‌های تمیز شده‌ی داخل این گروه
         group.items.forEach(item => {
             const n = item.cleanName;
             nameCounts[n] = (nameCounts[n] || 0) + 1;
@@ -575,10 +595,11 @@ function organizeGroups(data) {
             }
         });
 
-        group.name = bestName; // ثبت نام نهایی
+        // نام گروه می‌شود همان نامی که بیشترین تکرار را داشته
+        group.name = bestName;
     });
 
-    // 3. مرتب‌سازی گروه‌ها بر اساس تاریخ جدیدترین آیتم
+    // مرتب‌سازی گروه‌ها بر اساس تاریخ جدیدترین آیتم
     allGroups.sort((a,b) => b.items[0].fullDate - a.items[0].fullDate);
 }
 
