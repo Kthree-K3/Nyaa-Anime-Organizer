@@ -446,19 +446,32 @@ importFileInput.onchange = function(e) {
 };
 
 // ================= عملیات اسکن اصلی (یکپارچه با لیست هوشمند) =================
+// تابع کمکی برای بازگرداندن سریع ظاهر دکمه به حالت اول
+function resetScanUI() {
+    isScanning = false;
+    scanAbortController = null;
+    btnScan.disabled = false;
+    btnScan.classList.remove('btn-danger');
+    btnIcon.classList.remove('spinning');
+    btnText.innerText = "Start scanning";
+    searchInput.disabled = false;
+}
+
 async function startScanner() {
-    // ۱. کنترل استاپ آنی
+    // ۱. اگر در حال اسکن بود، بلافاصله ظاهر را ریست کن و درخواست را قطع کن
     if (isScanning) { 
-        isScanning = false; 
+        log("Stopping scan immediately...", "error"); 
         if (scanAbortController) scanAbortController.abort(); 
+        resetScanUI(); // ریست آنی ظاهر دکمه بدون معطلی
         return; 
     }
 
     isScanning = true;
-    scanAbortController = new AbortController(); // ایجاد سیگنال جدید
+    scanAbortController = new AbortController();
     
     const rangeMode = document.getElementById('dateRange').value;
     
+    // تنظیمات ظاهری شروع اسکن
     btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
@@ -486,7 +499,6 @@ async function startScanner() {
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
             
-            // ۲. اضافه کردن سیگنال به Fetch
             const response = await fetch(`${MY_WORKER_URL}/?c=1_2&p=${page}`, {
                 signal: scanAbortController.signal
             });
@@ -545,31 +557,30 @@ async function startScanner() {
             if (!keepScanning || !isScanning) break;
             page++;
             
-            // ۳. وقفه زمانی قابل قطع شدن
-            await new Promise(r => {
-                const t = setTimeout(r, 1200);
-                scanAbortController.signal.addEventListener('abort', () => clearTimeout(t));
+            // وقفه ۱.۲ ثانیه‌ای قابل قطع شدن
+            await new Promise((resolve, reject) => {
+                const t = setTimeout(resolve, 1200);
+                if (scanAbortController) {
+                    scanAbortController.signal.addEventListener('abort', () => {
+                        clearTimeout(t);
+                        reject(new Error('AbortError'));
+                    });
+                }
             });
         }
         
         refreshData();
-        log(isScanning ? "Task Complete." : "Scan Aborted.", isScanning ? 'success' : 'info');
+        log(isScanning ? "Task Complete." : "Scan aborted by user.", isScanning ? 'success' : 'info');
 
     } catch (e) {
-        // جلوگیری از نمایش ارور در صورت استاپ دستی
-        if (e.name === 'AbortError') {
-            log("Scan stopped by user.", "info");
+        if (e.name === 'AbortError' || e.message === 'AbortError') {
+            log("Scan aborted by user.", "info");
         } else {
             log(`Error: ${e.message}`, 'error');
         }
     } finally {
-        isScanning = false;
-        scanAbortController = null;
-        btnScan.disabled = false;
-        btnScan.classList.remove('btn-danger');
-        btnIcon.classList.remove('spinning');
-        btnText.innerText = "Start scanning";
-        searchInput.disabled = false;
+        // ریست نهایی برای اطمینان در صورت اتمام طبیعی اسکن
+        resetScanUI();
     }
 }
 
