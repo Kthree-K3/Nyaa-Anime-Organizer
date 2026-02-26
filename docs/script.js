@@ -446,11 +446,18 @@ importFileInput.onchange = function(e) {
 
 // ================= عملیات اسکن اصلی (یکپارچه با لیست هوشمند) =================
 async function startScanner() {
-    if (isScanning) { isScanning = false; log("Stopping scan...", "error"); return; }
+    // ۱. کنترل استاپ آنی
+    if (isScanning) { 
+        isScanning = false; 
+        if (scanAbortController) scanAbortController.abort(); 
+        return; 
+    }
+
     isScanning = true;
+    scanAbortController = new AbortController(); // ایجاد سیگنال جدید
+    
     const rangeMode = document.getElementById('dateRange').value;
     
-    // دکمه‌ها و ظاهر
     btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
@@ -470,14 +477,19 @@ async function startScanner() {
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
-    allFetchedData = []; // پاک کردن حافظه قبلی
+    allFetchedData = []; 
     let page = 1;
     let keepScanning = true;
 
     try {
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
-            const response = await fetch(`${MY_WORKER_URL}/?f=0&c=1_2&p=${page}`);
+            
+            // ۲. اضافه کردن سیگنال به Fetch
+            const response = await fetch(`${MY_WORKER_URL}/?c=1_2&p=${page}`, {
+                signal: scanAbortController.signal
+            });
+            
             const htmlText = await response.text();
             if (!isScanning) break;
 
@@ -502,7 +514,6 @@ async function startScanner() {
                 const rawTitle = linkEl.innerText.trim();
                 const lowerRawTitle = rawTitle.toLowerCase();
 
-                // بررسی تطابق با لیست من (بدون حذف کردن)
                 let matchedId = null;
                 if (mySavedList.length > 0) {
                     const matchedAnime = mySavedList.find(anime => {
@@ -514,11 +525,10 @@ async function startScanner() {
 
                 let status = tr.classList.contains('success') ? 'trusted' : (tr.classList.contains('danger') ? 'remake' : 'normal');
 
-                // ذخیره همه آیتم‌ها در متغیر سراسری
                 allFetchedData.push({
                     rawTitle,
                     cleanName: cleanTitle(rawTitle),
-                    watchlistId: matchedId, // شناسه مچ شده (اگر بود)
+                    watchlistId: matchedId,
                     link: TARGET_DOMAIN + linkEl.getAttribute('href'),
                     magnet: tds[2].querySelector('a[href^="magnet:"]')?.getAttribute('href') || '',
                     size: tds[3].innerText.trim(),
@@ -533,16 +543,27 @@ async function startScanner() {
             log(`Page ${page}: Done.`, 'success');
             if (!keepScanning || !isScanning) break;
             page++;
-            await new Promise(r => setTimeout(r, 1200));
+            
+            // ۳. وقفه زمانی قابل قطع شدن
+            await new Promise(r => {
+                const t = setTimeout(r, 1200);
+                scanAbortController.signal.addEventListener('abort', () => clearTimeout(t));
+            });
         }
         
-        // در پایان اسکن، تابع نمایش را صدا می‌زنیم
         refreshData();
-        
         log(isScanning ? "Task Complete." : "Scan Aborted.", isScanning ? 'success' : 'info');
-    } catch (e) { log(`Error: ${e.message}`, 'error'); } 
-    finally {
+
+    } catch (e) {
+        // جلوگیری از نمایش ارور در صورت استاپ دستی
+        if (e.name === 'AbortError') {
+            log("Scan stopped by user.", "info");
+        } else {
+            log(`Error: ${e.message}`, 'error');
+        }
+    } finally {
         isScanning = false;
+        scanAbortController = null;
         btnScan.disabled = false;
         btnScan.classList.remove('btn-danger');
         btnIcon.classList.remove('spinning');
