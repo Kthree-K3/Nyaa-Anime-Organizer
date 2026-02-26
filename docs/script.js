@@ -30,9 +30,45 @@ const myListContainer = document.getElementById('myListContainer');
 
 const clearMyListSearch = document.getElementById('clearMyListSearch');
 
-// منطق دکمه پاکسازی در لیست من
-myListSearchInput.oninput = function() {
-    clearMyListSearch.style.display = this.value ? 'block' : 'none';
+// ================= بخش جستجو (اصلاح شده: جستجو در محتوای فایل‌ها) =================
+searchInput.oninput = function() {
+    const query = this.value.toLowerCase();
+    clearSearch.style.display = query ? 'block' : 'none';
+    
+    const cards = document.querySelectorAll('.anime-card');
+
+    cards.forEach(card => {
+        // پیدا کردن لیست فایل‌های داخل کارت
+        const episodesListContainer = card.querySelector('.episodes-list');
+        const episodes = card.querySelectorAll('.episode-item');
+        let hasVisibleEpisodes = false;
+
+        episodes.forEach(ep => {
+            // پیدا کردن عنوان فایل
+            const titleEl = ep.querySelector('.ep-raw-title');
+            const titleText = titleEl ? titleEl.innerText.toLowerCase() : '';
+
+            // بررسی تطابق متن
+            if (titleText.includes(query)) {
+                ep.style.display = 'flex'; // نمایش فایل (چون فلکس است)
+                hasVisibleEpisodes = true;
+            } else {
+                ep.style.display = 'none'; // مخفی کردن فایل
+            }
+        });
+
+        // مدیریت نمایش کلی کارت (پوشه)
+        if (hasVisibleEpisodes) {
+            card.style.display = 'block';
+            
+            // اگر جستجو انجام شده، لیست کشویی را باز کن تا کاربر فایل را ببیند
+            if (query.trim() !== '') {
+                episodesListContainer.style.display = 'block';
+            }
+        } else {
+            card.style.display = 'none';
+        }
+    });
 };
 
 clearMyListSearch.onclick = function() {
@@ -67,7 +103,20 @@ searchInput.oninput = function() {
 clearSearch.onclick = function() {
     searchInput.value = '';
     this.style.display = 'none';
-    document.querySelectorAll('.anime-card').forEach(c => c.style.display = 'block');
+    
+    // بازگرداندن همه چیز به حالت اولیه
+    document.querySelectorAll('.anime-card').forEach(card => {
+        card.style.display = 'block'; // نمایش کارت
+        
+        // بستن لیست کشویی (اختیاری: اگر می‌خواهید باز بمانند این خط را حذف کنید)
+        card.querySelector('.episodes-list').style.display = 'none';
+
+        // نمایش مجدد تمام فایل‌های داخل کارت
+        card.querySelectorAll('.episode-item').forEach(ep => {
+            ep.style.display = 'flex';
+        });
+    });
+    
     searchInput.focus();
 };
 
