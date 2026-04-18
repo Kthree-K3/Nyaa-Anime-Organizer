@@ -724,7 +724,7 @@ function renderUI() {
 
                     <!-- دکمه جدید Nyaa Proxy -->
                     <button class="header-icon-btn" title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
-                        <img src="favicon2.ico" alt="N">
+                        <img src="favicon-Red.ico" alt="N">
                     </button>
 
                     
