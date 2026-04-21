@@ -89,7 +89,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .ep-meta b { color: var(--text-main); font-weight: 700; }
 
 .ep-actions { display: flex; gap: 8px; }
-.btn-link, .btn-magnet { padding: 6px 14px; border-radius: 8px; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; font-weight: 600; background: rgba(30, 41, 59, 0.5); }
+.btn-link, .btn-magnet { padding: 6px 10px; border-radius: 8px; text-decoration: none; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; font-weight: 600; background: rgba(30, 41, 59, 0.5); }
 .btn-link { color: var(--primary); border: 1px solid var(--primary); }
 .btn-link:hover { background: var(--primary); color: white; }
 .btn-magnet { color: var(--magnet); border: 1px solid var(--magnet); }
