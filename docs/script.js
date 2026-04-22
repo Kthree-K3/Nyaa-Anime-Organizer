@@ -232,13 +232,13 @@ btnCloseMyList.onclick = function() {
 function addToMyList(anime) {
     if (mySavedList.some(x => x.id === anime.id)) return;
 
-    // بدون هیچ حذفی
-    const engTitle = anime.english || "";
-    const romTitle = anime.romaji || "";
+    // تمیز کردن نام‌ها و حذف دو نقطه
+    const cleanEng = cleanTitle(anime.english).replace(/:/g, '');
+    const cleanRom = cleanTitle(anime.romaji).replace(/:/g, '');
     
     const keywordSet = new Set();
-    if (engTitle) keywordSet.add(engTitle);
-    if (romTitle) keywordSet.add(romTitle);
+    if (cleanEng && cleanEng !== "Unknown") keywordSet.add(cleanEng);
+    if (cleanRom && cleanRom !== "Unknown") keywordSet.add(cleanRom);
     
     mySavedList.unshift({
         id: anime.id,
@@ -270,10 +270,9 @@ function renderMySavedList() {
                 <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
                 
                 <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
-                     <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" 
-                     title="One keyword per line. Each line will be used to match torrent titles">
-                    ${escapeHtml(keywords).split('\n').filter(k => k).join(', ')}
-                     </div>
+                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="Click to edit keywords">
+                    ${keywords.split('\n').filter(k => k).join(', ')}
+                </div>
             </div>
             <div class="edit-keywords-box" id="edit-mode-${index}">
                 <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
@@ -313,10 +312,14 @@ window.saveKeywords = function(index) {
     const textarea = document.getElementById(`input-keywords-${index}`);
     const value = textarea.value;
     
-    // بدون هیچ حذفی
-    mySavedList[index].keywords = value.trim();
+    // حذف علامت دو نقطه (:) موقع ذخیره نهایی
+    const cleanValue = value.replace(/:/g, '');
+    
+    // آپدیت کردن لیست اصلی و ذخیره در حافظه
+    mySavedList[index].keywords = cleanValue.trim();
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     
+    // بازگرداندن صفحه به حالت نمایش
     renderMySavedList();
 };
 
