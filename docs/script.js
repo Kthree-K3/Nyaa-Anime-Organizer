@@ -528,7 +528,7 @@ async function startScanner() {
                 if (mySavedList.length > 0) {
                     const matchedAnime = mySavedList.find(anime => {
                         const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-                        return keywordList.some(keyword => lowerRawTitle.includes(keyword.trim()));
+                        return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), cleanTitle(keyword)) > SIMILARITY_THRESHOLD);
                     });
                     if (matchedAnime) matchedId = matchedAnime.id;
                 }
