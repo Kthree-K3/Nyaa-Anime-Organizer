@@ -128,32 +128,33 @@ window.onclick = function(event) {
 function cleanTitle(raw) {
     let name = raw.trim();
     
-    // 1. حذف محتویات داخل براکت []
+    // حذف براکت‌ها و محتویات داخلشون (اطلاعات رلیز گروه)
     name = name.replace(/\[.*?\]/g, '');
     
-    // 2. حذف مطلق تمام پرانتزها و محتویات داخلشان ()
-    name = name.replace(/(\s\(.*?\))\s.*/, '$1');
+    // حذف پرانتزها و محتویات داخلشون (اطلاعات فنی)
     name = name.replace(/\(.*?\)/g, '');
     
-    // 3. تبدیل نقطه و آندرلاین به فاصله
-    name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
-
-    const stopMarkers = [
+    // تبدیل نقطه و آندرلاین به فاصله
+    name = name.replace(/[._]/g, ' ');
+    
+    // حذف شماره اپیزود و الگوهای مشابه
+    const patterns = [
         /\sEpisode\s?\d+/i,
-        /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
-        /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
-        /\sEp\s?\d+/i, /\s\d{2,}\s/,
-        /\sS\d+/i, 
-        /\sE\d+/i   
+        /\s-\s?\d+/i,
+        /\sS\d+E\d+/i,
+        /\sEp\s?\d+/i,
+        /\s\d{2,}\s/
     ];
-
-    let firstMatchIndex = name.length;
-    stopMarkers.forEach(pattern => {
+    
+    for (let pattern of patterns) {
         const match = name.match(pattern);
-        if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
-    });
-
-    return name.substring(0, firstMatchIndex).trim().replace(/[:\-~]+$/, '').trim() || "Unknown";
+        if (match && match.index !== undefined) {
+            name = name.substring(0, match.index);
+            break;
+        }
+    }
+    
+    return name.trim() || "Unknown";
 }
 
 function sizeToBytes(sizeStr) {
@@ -232,20 +233,20 @@ btnCloseMyList.onclick = function() {
 function addToMyList(anime) {
     if (mySavedList.some(x => x.id === anime.id)) return;
 
-    // تمیز کردن نام‌ها و حذف دو نقطه
-    const cleanEng = cleanTitle(anime.english).replace(/:/g, '');
-    const cleanRom = cleanTitle(anime.romaji).replace(/:/g, '');
+    // بدون هیچ تغییری، مستقیم استفاده کن
+    const engTitle = anime.english || "";
+    const romTitle = anime.romaji || "";
     
     const keywordSet = new Set();
-    if (cleanEng && cleanEng !== "Unknown") keywordSet.add(cleanEng);
-    if (cleanRom && cleanRom !== "Unknown") keywordSet.add(cleanRom);
+    if (engTitle) keywordSet.add(engTitle);
+    if (romTitle) keywordSet.add(romTitle);
     
     mySavedList.unshift({
         id: anime.id,
         english: anime.english,
         romaji: anime.romaji,
         cover: anime.cover,
-        keywords: Array.from(keywordSet).join('\n')
+        keywords: Array.from(keywordSet).join('\n')  // دقیقاً همون چیزی که اومده
     });
     
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
@@ -253,6 +254,7 @@ function addToMyList(anime) {
 }
 
 // نمایش لیست با قابلیت ویرایش و نمایش تگ‌ها
+// ================= اصلاح تابع renderMySavedList با اضافه کردن tooltip =================
 function renderMySavedList() {
     myListContainer.innerHTML = '';
     if (mySavedList.length === 0) {
@@ -266,16 +268,15 @@ function renderMySavedList() {
         div.innerHTML = `
             <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
             <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
-                <!-- عنوان کلیک‌خور برای باز کردن مشخصات -->
-                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
+                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${escapeHtml(item.romaji)}</span>
                 
-                <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
-                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="Click to edit keywords">
-                    ${keywords.split('\n').filter(k => k).join(', ')}
+                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" 
+                     title="One keyword per line. Each line will be used to match torrent titles">
+                    ${escapeHtml(keywords).split('\n').filter(k => k).join(', ')}
                 </div>
             </div>
             <div class="edit-keywords-box" id="edit-mode-${index}">
-                <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
+                <textarea id="input-keywords-${index}" placeholder="Enter keywords (one per line)...&#10;Example:&#10;Attack on Titan&#10;Shingeki no Kyojin&#10;AoT">${escapeHtml(keywords)}</textarea>
                 <div class="edit-actions">
                     <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
                     <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
@@ -285,6 +286,17 @@ function renderMySavedList() {
         `;
         myListContainer.appendChild(div);
     });
+}
+
+// تابع کمکی برای escape کردن کاراکترهای خاص HTML
+function escapeHtml(str) {
+    if (!str) return '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 // سوییچ بین نمایش و ویرایش
@@ -310,16 +322,11 @@ window.toggleEditKeywords = function(index, isEdit) {
 
 window.saveKeywords = function(index) {
     const textarea = document.getElementById(`input-keywords-${index}`);
-    const value = textarea.value;
+    const value = textarea.value;  // دقیقاً هر چی کاربر نوشته
     
-    // حذف علامت دو نقطه (:) موقع ذخیره نهایی
-    const cleanValue = value.replace(/:/g, '');
-    
-    // آپدیت کردن لیست اصلی و ذخیره در حافظه
-    mySavedList[index].keywords = cleanValue.trim();
+    mySavedList[index].keywords = value;  // بدون تغییر
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     
-    // بازگرداندن صفحه به حالت نمایش
     renderMySavedList();
 };
 
