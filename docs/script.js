@@ -232,13 +232,13 @@ btnCloseMyList.onclick = function() {
 function addToMyList(anime) {
     if (mySavedList.some(x => x.id === anime.id)) return;
 
-    // تمیز کردن نام‌ها و حذف دو نقطه
-    const cleanEng = cleanTitle(anime.english).replace(/:/g, '');
-    const cleanRom = cleanTitle(anime.romaji).replace(/:/g, '');
+    // بدون هیچ تمیزکاری؛ دقیقاً همان متنی که از AniList آمده استفاده می‌شود.
+    const eng = anime.english || "";
+    const rom = anime.romaji || "";
     
     const keywordSet = new Set();
-    if (cleanEng && cleanEng !== "Unknown") keywordSet.add(cleanEng);
-    if (cleanRom && cleanRom !== "Unknown") keywordSet.add(cleanRom);
+    if (eng.trim()) keywordSet.add(eng);
+    if (rom.trim()) keywordSet.add(rom);
     
     mySavedList.unshift({
         id: anime.id,
@@ -270,7 +270,7 @@ function renderMySavedList() {
                 <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
                 
                 <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
-                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="Click to edit keywords">
+                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="One keyword per line. Each line will be used to match torrent titles">
                     ${keywords.split('\n').filter(k => k).join(', ')}
                 </div>
             </div>
@@ -312,14 +312,10 @@ window.saveKeywords = function(index) {
     const textarea = document.getElementById(`input-keywords-${index}`);
     const value = textarea.value;
     
-    // حذف علامت دو نقطه (:) موقع ذخیره نهایی
-    const cleanValue = value.replace(/:/g, '');
-    
-    // آپدیت کردن لیست اصلی و ذخیره در حافظه
-    mySavedList[index].keywords = cleanValue.trim();
+    // فقط فضای خالی ابتدا و انتها حذف می‌شود، هیچ جایگزینی کاراکتری انجام نمی‌شود.
+    mySavedList[index].keywords = value.trim();
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     
-    // بازگرداندن صفحه به حالت نمایش
     renderMySavedList();
 };
 
