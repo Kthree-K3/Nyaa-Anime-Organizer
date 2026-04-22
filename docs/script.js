@@ -128,33 +128,32 @@ window.onclick = function(event) {
 function cleanTitle(raw) {
     let name = raw.trim();
     
-    // حذف براکت‌ها و محتویات داخلشون (اطلاعات رلیز گروه)
+    // 1. حذف محتویات داخل براکت []
     name = name.replace(/\[.*?\]/g, '');
     
-    // حذف پرانتزها و محتویات داخلشون (اطلاعات فنی)
+    // 2. حذف مطلق تمام پرانتزها و محتویات داخلشان ()
+    name = name.replace(/(\s\(.*?\))\s.*/, '$1');
     name = name.replace(/\(.*?\)/g, '');
     
-    // تبدیل نقطه و آندرلاین به فاصله
-    name = name.replace(/[._]/g, ' ');
-    
-    // حذف شماره اپیزود و الگوهای مشابه
-    const patterns = [
+    // 3. تبدیل نقطه و آندرلاین به فاصله
+    name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
+
+    const stopMarkers = [
         /\sEpisode\s?\d+/i,
-        /\s-\s?\d+/i,
-        /\sS\d+E\d+/i,
-        /\sEp\s?\d+/i,
-        /\s\d{2,}\s/
+        /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
+        /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
+        /\sEp\s?\d+/i, /\s\d{2,}\s/,
+        /\sS\d+/i, 
+        /\sE\d+/i   
     ];
-    
-    for (let pattern of patterns) {
+
+    let firstMatchIndex = name.length;
+    stopMarkers.forEach(pattern => {
         const match = name.match(pattern);
-        if (match && match.index !== undefined) {
-            name = name.substring(0, match.index);
-            break;
-        }
-    }
-    
-    return name.trim() || "Unknown";
+        if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
+    });
+
+    return name.substring(0, firstMatchIndex).trim().replace(/[:\-~]+$/, '').trim() || "Unknown";
 }
 
 function sizeToBytes(sizeStr) {
@@ -233,7 +232,7 @@ btnCloseMyList.onclick = function() {
 function addToMyList(anime) {
     if (mySavedList.some(x => x.id === anime.id)) return;
 
-    // بدون هیچ تغییری، مستقیم استفاده کن
+    // بدون هیچ حذفی
     const engTitle = anime.english || "";
     const romTitle = anime.romaji || "";
     
@@ -246,7 +245,7 @@ function addToMyList(anime) {
         english: anime.english,
         romaji: anime.romaji,
         cover: anime.cover,
-        keywords: Array.from(keywordSet).join('\n')  // دقیقاً همون چیزی که اومده
+        keywords: Array.from(keywordSet).join('\n')
     });
     
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
@@ -254,7 +253,6 @@ function addToMyList(anime) {
 }
 
 // نمایش لیست با قابلیت ویرایش و نمایش تگ‌ها
-// ================= اصلاح تابع renderMySavedList با اضافه کردن tooltip =================
 function renderMySavedList() {
     myListContainer.innerHTML = '';
     if (mySavedList.length === 0) {
@@ -268,15 +266,17 @@ function renderMySavedList() {
         div.innerHTML = `
             <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
             <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
-                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${escapeHtml(item.romaji)}</span>
+                <!-- عنوان کلیک‌خور برای باز کردن مشخصات -->
+                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
                 
-                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" 
+                <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
+                     <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" 
                      title="One keyword per line. Each line will be used to match torrent titles">
                     ${escapeHtml(keywords).split('\n').filter(k => k).join(', ')}
-                </div>
+                     </div>
             </div>
             <div class="edit-keywords-box" id="edit-mode-${index}">
-                <textarea id="input-keywords-${index}" placeholder="Enter keywords (one per line)...&#10;Example:&#10;Attack on Titan&#10;Shingeki no Kyojin&#10;AoT">${escapeHtml(keywords)}</textarea>
+                <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
                 <div class="edit-actions">
                     <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
                     <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
@@ -286,17 +286,6 @@ function renderMySavedList() {
         `;
         myListContainer.appendChild(div);
     });
-}
-
-// تابع کمکی برای escape کردن کاراکترهای خاص HTML
-function escapeHtml(str) {
-    if (!str) return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
 }
 
 // سوییچ بین نمایش و ویرایش
@@ -322,9 +311,10 @@ window.toggleEditKeywords = function(index, isEdit) {
 
 window.saveKeywords = function(index) {
     const textarea = document.getElementById(`input-keywords-${index}`);
-    const value = textarea.value;  // دقیقاً هر چی کاربر نوشته
+    const value = textarea.value;
     
-    mySavedList[index].keywords = value;  // بدون تغییر
+    // بدون هیچ حذفی
+    mySavedList[index].keywords = value.trim();
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     
     renderMySavedList();
