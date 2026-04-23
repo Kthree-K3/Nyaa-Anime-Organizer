@@ -1,6 +1,6 @@
 // ================= تنظیمات اصلی ==================
-const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
-const TARGET_DOMAIN = "https://nyaa.land"; 
+const MY_WORKER_URL = "https://nyaa-si.khalilkhko.workers.dev";
+const TARGET_DOMAIN = "https://nyaa.ink"; 
 const Nyaa_DOMAIN = "https://nyaa.si"; 
 const SIMILARITY_THRESHOLD = 0.6; 
 
@@ -804,8 +804,8 @@ function renderEpisodeItems(items) {
                      <i class="fas fa-arrow-down"></i> ${item.peers}
                  </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa.land</a>
-                 <a href="${item.link.replace('nyaa.land', 'nyaa.si')}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa.ink</a>
+                 <a href="${item.link.replace('nyaa.ink', 'nyaa.si')}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
             </div>
         </div>
     `).join('');
