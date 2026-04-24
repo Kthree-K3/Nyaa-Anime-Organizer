@@ -718,8 +718,8 @@ function renderUI() {
                         <img src="https://anilist.co/img/icons/favicon-32x32.png" alt="AL">
                     </button>
 
-                    <!-- دکمه جدید Nyaa Proxy -->
-                    <button class="header-icon-btn" style="display: none !important;"  title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                    <!-- دکمه جدید Nyaa Proxy (مخفی شده) -->
+                    <button class="header-icon-btn" style="display: none;" title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon-Red.ico" alt="N">
                     </button>
 
