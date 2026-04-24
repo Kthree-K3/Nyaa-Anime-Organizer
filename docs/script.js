@@ -16,6 +16,7 @@ const grid = document.getElementById('anime-list');
 const searchInput = document.getElementById('searchInput');
 const clearSearch = document.getElementById('clearSearch');
 const debugConsole = document.getElementById('debug-console');
+const checkboxFilter = document.getElementById('myListFilter');
 
 
 // متغیرهای جدید برای My Anime List
@@ -32,6 +33,10 @@ const myListSearchResults = document.getElementById('myListSearchResults');
 const myListContainer = document.getElementById('myListContainer');
 
 const clearMyListSearch = document.getElementById('clearMyListSearch');
+
+if (!localStorage.getItem('mySmartAnimeList') || JSON.parse(localStorage.getItem('mySmartAnimeList')).length === 0) {
+    checkboxFilter.checked = false;
+}
 
 // منطق دکمه پاکسازی در لیست من
 myListSearchInput.oninput = function() {
@@ -583,6 +588,10 @@ async function startScanner() {
 
 // تابع جدید: اعمال فیلتر و بازسازی گروه‌ها بدون اسکن مجدد
 function refreshData() {
+    if (myListFilter.checked && (!mySavedList || mySavedList.length === 0)) {
+        myListFilter.checked = false;
+    }
+
     // اگر داده‌ای دانلود نشده، کاری نکن
     if (allFetchedData.length === 0) return;
 
