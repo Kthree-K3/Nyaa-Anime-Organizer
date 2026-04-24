@@ -719,7 +719,7 @@ function renderUI() {
                     </button>
 
                     <!-- دکمه جدید Nyaa Proxy -->
-                    <button class="header-icon-btn" title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                    <button class="header-icon-btn" style="display: none !important;"  title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon-Red.ico" alt="N">
                     </button>
 
@@ -804,7 +804,7 @@ function renderEpisodeItems(items) {
                      <i class="fas fa-arrow-down"></i> ${item.peers}
                  </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Proxy" style="display: none !important;"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
                  <a href="${item.link.replace('nyaa-proxy-zeta.vercel.app', 'nyaa.si')}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
             </div>
         </div>
