@@ -804,7 +804,7 @@ function renderEpisodeItems(items) {
                      <i class="fas fa-arrow-down"></i> ${item.peers}
                  </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Proxy" style="display: none !important;"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
+                 <a href="${item.link}" target="_blank" class="btn-link" style="display: none;" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
                  <a href="${item.link.replace('nyaa-proxy-zeta.vercel.app', 'nyaa.si')}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
             </div>
         </div>
