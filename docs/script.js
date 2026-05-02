@@ -1,9 +1,8 @@
 // ================= تنظیمات اصلی ==================
 const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
-const TARGET_DOMAIN = "https://nyaa.land";  
-const Nyaa_DOMAIN = "https://nyaa.si"; 
-const SIMILARITY_THRESHOLD = 0.6; 
+const TARGET_DOMAIN = "https://nyaa.si";  
 
+const SIMILARITY_THRESHOLD = 0.6; 
 let allGroups = []; 
 let isScanning = false;
 let allFetchedData = [];
@@ -734,7 +733,7 @@ function renderUI() {
 
                     
                     <!-- دکمه جدید Nyaa -->
-                    <button class="header-icon-btn" title="Search Nyaa.si" onclick="event.stopPropagation(); window.open('${Nyaa_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                    <button class="header-icon-btn" title="Search Nyaa.si" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon.ico" alt="N">
                     </button>
 
@@ -814,7 +813,7 @@ function renderEpisodeItems(items) {
                  </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
                  <a href="${item.link}" target="_blank" class="btn-link" style="display: none;" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
-                 <a href="${item.link.replace('nyaa-proxy-zeta.vercel.app', 'nyaa.si')}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
+                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
             </div>
         </div>
     `).join('');
