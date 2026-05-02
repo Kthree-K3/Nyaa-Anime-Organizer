@@ -1,6 +1,6 @@
 // ================= تنظیمات اصلی ==================
-const MY_WORKER_URL = "https://nyaa-proxy-zeta.vercel.app";
-const TARGET_DOMAIN = "https://nyaa-proxy-zeta.vercel.app";  
+const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
+const TARGET_DOMAIN = "https://nyaa.land";  
 const Nyaa_DOMAIN = "https://nyaa.si"; 
 const SIMILARITY_THRESHOLD = 0.6; 
 
