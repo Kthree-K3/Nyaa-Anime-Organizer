@@ -2,7 +2,7 @@
 const MY_WORKER_URL = "https://nyaa-k3.khalilkhko.workers.dev";
 const TARGET_DOMAIN = "https://nyaa.si";  
 
-const SIMILARITY_THRESHOLD = 0.75; 
+const SIMILARITY_THRESHOLD = 0.8; 
 let allGroups = []; 
 let isScanning = false;
 let allFetchedData = [];
