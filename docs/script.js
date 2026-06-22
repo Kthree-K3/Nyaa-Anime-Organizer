@@ -131,35 +131,34 @@ window.onclick = function(event) {
 // ================= الگوریتم نام پوشه =================
 function cleanTitle(raw) {
     let name = raw.trim();
-    
-    // 1. حذف محتویات داخل براکت []
+    name = name.replace(/\.(mkv|mp4|avi|ts|zip|rar|wmv|3gp|flv|m2ts)$/i, '');
     name = name.replace(/\[.*?\]/g, '');
-    
-    // 2. حذف مطلق تمام پرانتزها و محتویات داخلشان ()
-    name = name.replace(/(\s\(.*?\))\s.*/, '$1');
-    name = name.replace(/\(.*?\)/g, '');
-    
-    // 3. تبدیل نقطه و آندرلاین به فاصله
-    name = name.replace(/[._](?!(mkv|mp4|avi|ts|zip|rar)$)/gi, ' ');
-
+    name = name.replace(/\s?\(.*?\)\s?/g, ' ');
+    name = name.replace(/[._]/g, ' ');
     const stopMarkers = [
         /\sEpisode\s?\d+/i,
         /\sEpisodes\s?\d+/i,
-        /\s-\s\d+/i, /\sS\d+E\d+/i, /\sS\d+\s?-\s?\d+/i, 
-        /\s\d+(st|nd|rd|th)\sSeason/i, /\sSeason\s\d+/i, 
-        /\sEp\s?\d+/i, /\s\d{2,}\s/,
+        /\s-\s\d+/i, 
+        /\sS\d+E\d+/i, 
+        /\sS\d+\s?-\s?\d+/i, 
+        /\s\d+(st|nd|rd|th)\sSeason/i, 
+        /\sSeason\s\d+/i, 
+        /\sEp\s?\d+/i, 
         /\sS\d+/i, 
         /\sE\d+/i,
-        /\s?~/
+        /\s?~/,
+        /\s\d+$/, 
+        /\s\d{3,4}p/i,
+        /\s(BDREMUX|BD-REMUX|BDrip|BRrip|BR-rip|DVDRip|DVD-Rip|HDTV|Webrip|Web-rip|BluRay)/i,
+        /\s(HEVC|x264|x265|h264|h265|10bit|10-bit|Dual Audio|Multi-Audio|FLAC|AAC|x264_10bit|x265_10bit)/i
     ];
-
     let firstMatchIndex = name.length;
     stopMarkers.forEach(pattern => {
         const match = name.match(pattern);
         if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
     });
-
-    return name.substring(0, firstMatchIndex).trim().replace(/[:\-~]+$/, '').trim() || "Unknown";
+    name = name.substring(0, firstMatchIndex).trim();
+    return name.replace(/[:\-~,\s]+$/, '').trim() || "Unknown";
 }
 
 function sizeToBytes(sizeStr) {
