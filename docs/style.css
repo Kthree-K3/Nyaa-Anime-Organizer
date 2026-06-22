@@ -596,3 +596,47 @@ input:checked + .slider:before { transform: translateX(22px); }
 #aniListSearchInput {
     padding-right: 12px !important;
 }
+
+/* هدر بخش انیمه‌های امروز */
+.today-releases-header {
+    grid-column: 1 / -1;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #22c55e;
+    margin: 15px 0 5px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px dashed rgba(34, 197, 94, 0.3);
+    padding-bottom: 5px;
+}
+
+/* خط جداکننده لیست */
+.watchlist-divider {
+    grid-column: 1 / -1;
+    border: 0;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--border), transparent);
+    margin: 20px 0 10px 0;
+}
+
+/* برجسته‌سازی کارت‌های امروز */
+.saved-item.is-today-airing {
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.05);
+}
+
+/* نشانگر ساعت پخش انیمه */
+.airing-today-badge {
+    align-self: flex-start;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}

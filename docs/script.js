@@ -257,39 +257,302 @@ function addToMyList(anime) {
     renderMySavedList();
 }
 
-// نمایش لیست با قابلیت ویرایش و نمایش تگ‌ها
-function renderMySavedList() {
+// متغیر سراسری برای ناوبری روزها (0 = امروز، 1- = دیروز، 1 = فردا، 2- = پریروز و...)
+let currentWatchlistDayOffset = 0;
+
+// ۱. محاسبه روز هفته به وقت تهران (0 برای یکشنبه تا 6 برای شنبه)
+function getTehranWeekday(timestamp) {
+    const date = new Date(timestamp * 1000);
+    const options = { timeZone: 'Asia/Tehran', weekday: 'short' };
+    const weekdayStr = new Intl.DateTimeFormat('en-US', options).format(date);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days.indexOf(weekdayStr);
+}
+
+// ۲. محاسبه روز هفته هدف بر اساس میزان عقب/جلو رفتن کاربر (Offset)
+function getTehranTargetWeekday(offset) {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offset);
+    const options = { timeZone: 'Asia/Tehran', weekday: 'short' };
+    const weekdayStr = new Intl.DateTimeFormat('en-US', options).format(targetDate);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days.indexOf(weekdayStr);
+}
+
+// ۳. تبدیل تاریخ به فرمت استاندارد انگلیسی به وقت تهران (مثال: Tuesday, June 23, 2026)
+function getTehranFormattedDate(offset) {
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offset);
+    
+    const options = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'Asia/Tehran' };
+    return new Intl.DateTimeFormat('en-US', options).format(targetDate);
+}
+
+// ۴. دریافت نام روز هدف به صورت نسبی (Today, Yesterday, Tomorrow) یا نام روز هفته انگلیسی
+function getRelativeDayLabel(offset) {
+    if (offset === 0) return 'Today';
+    if (offset === -1) return 'Yesterday';
+    if (offset === 1) return 'Tomorrow';
+    
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offset);
+    return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(targetDate);
+}
+
+// ۵. دریافت اطلاعات زمان پخش انیمه‌ها از API سایت AniList
+async function fetchAiringSchedules(ids) {
+    if (!ids || ids.length === 0) return {};
+    
+    const query = `
+    query ($ids: [Int]) {
+        Page(perPage: 50) {
+            media(id_in: $ids, type: ANIME) {
+                id
+                nextAiringEpisode {
+                    airingAt
+                    episode
+                }
+            }
+        }
+    }`;
+
+    try {
+        const res = await fetch('https://graphql.anilist.co', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables: { ids } })
+        });
+        
+        if (!res.ok) throw new Error("AniList API connection issues");
+        
+        const json = await res.json();
+        const schedules = {};
+        
+        if (json?.data?.Page?.media) {
+            json.data.Page.media.forEach(anime => {
+                if (anime.nextAiringEpisode) {
+                    schedules[anime.id] = anime.nextAiringEpisode;
+                }
+            });
+        }
+        return schedules;
+    } catch (e) {
+        console.warn("Could not fetch schedules, falling back to standard view:", e);
+        return {}; 
+    }
+}
+
+// ۶. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده)
+function isAiringOnOffsetDayInTehran(airingAt, offset) {
+    if (!airingAt) return false;
+    
+    if (offset < 0) {
+        // برای گذشته: استفاده از تطبیق روز هفته به دلیل عدم وجود دیتای دیروز در فیلد nextAiringEpisode
+        return getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
+    } else {
+        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها
+        const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
+        const formatter = new Intl.DateTimeFormat('en-US', options);
+        
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + offset);
+        
+        const targetStr = formatter.format(targetDate);
+        const airingStr = formatter.format(new Date(airingAt * 1000));
+        
+        return targetStr === airingStr;
+    }
+}
+
+// ۷. دریافت ساعت پخش به وقت تهران
+function getTehranAiringTime(airingAt) {
+    if (!airingAt) return '';
+    const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
+    const formatter = new Intl.DateTimeFormat('en-US', options);
+    return formatter.format(new Date(airingAt * 1000));
+}
+
+// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست
+function updateWatchlistCountdowns() {
+    const countdowns = document.querySelectorAll('.airing-today-countdown');
+    countdowns.forEach(el => {
+        const airingAt = parseInt(el.getAttribute('data-airing-at'), 10);
+        if (!airingAt) return;
+        
+        const now = Date.now();
+        const diff = (airingAt * 1000) - now;
+        
+        if (diff > 0) {
+            const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            let timeStr = "";
+            if (daysLeft > 0) {
+                timeStr = `${daysLeft}d ${hours}h left`;
+            } else {
+                timeStr = `${hours}h ${minutes}m left`;
+            }
+            el.innerText = `(${timeStr})`;
+        } else {
+            el.innerText = `(Aired)`;
+            el.style.color = 'var(--text-dim)'; 
+        }
+    });
+}
+
+// اجرای مداوم آپدیت معکوس
+setInterval(updateWatchlistCountdowns, 10000);
+
+// ۹. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و فاصله‌های فوق‌العاده فشرده
+async function renderMySavedList() {
+    myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
+    
+    const ids = mySavedList.map(item => item.id);
+    const schedules = await fetchAiringSchedules(ids);
+    
     myListContainer.innerHTML = '';
     if (mySavedList.length === 0) {
         myListContainer.innerHTML = '<div style="color:gray; grid-column:1/-1; text-align:center; padding:20px;">List is empty. Search to add.</div>';
         return;
     }
-   mySavedList.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'saved-item';
-        const keywords = item.keywords || ''; 
-        div.innerHTML = `
-            <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
-            <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
-                <!-- عنوان کلیک‌خور برای باز کردن مشخصات -->
-                <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
-                
-                <!-- فقط کلیک روی کادر کلیدواژه ویرایش را باز می‌کند -->
-                <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="One keyword per line. Each line will be used to match torrent titles">
-                    ${keywords.split('\n').filter(k => k).join(', ')}
-                </div>
-            </div>
-            <div class="edit-keywords-box" id="edit-mode-${index}">
-                <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
-                <div class="edit-actions">
-                    <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
-                    <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
-                </div>
-            </div>
-            <button class="btn-remove-item" onclick="removeFromMyList(${index})"><i class="fas fa-times"></i></button>
-        `;
-        myListContainer.appendChild(div);
+
+    // طراحی کنترلر ناوبری < Today > (فاصله عمودی پایین به ۲ پیکسل کاهش یافت)
+    const paginationContainer = document.createElement('div');
+    paginationContainer.style.cssText = 'display: flex; gap: 10px; margin-bottom: 2px; grid-column: 1 / -1; justify-content: center; align-items: center;';
+    
+    // دکمه عقب گرد روز (<)
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'sort-btn';
+    prevBtn.style.padding = '6px 18px';
+    prevBtn.style.borderRadius = '20px';
+    prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    prevBtn.onclick = () => {
+        currentWatchlistDayOffset--;
+        renderMySavedList();
+    };
+
+    // دکمه مرکز (Today / امروز)
+    const todayBtn = document.createElement('button');
+    todayBtn.className = `sort-btn ${currentWatchlistDayOffset === 0 ? 'active' : ''}`;
+    todayBtn.style.padding = '6px 20px';
+    todayBtn.style.borderRadius = '20px';
+    todayBtn.style.fontWeight = 'bold';
+    todayBtn.innerText = 'Today';
+    todayBtn.onclick = () => {
+        currentWatchlistDayOffset = 0;
+        renderMySavedList();
+    };
+
+    // دکمه جلو گرد روز (>)
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'sort-btn';
+    nextBtn.style.padding = '6px 18px';
+    nextBtn.style.borderRadius = '20px';
+    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    nextBtn.onclick = () => {
+        currentWatchlistDayOffset++;
+        renderMySavedList();
+    };
+
+    paginationContainer.appendChild(prevBtn);
+    paginationContainer.appendChild(todayBtn);
+    paginationContainer.appendChild(nextBtn);
+    
+    myListContainer.appendChild(paginationContainer);
+
+    // ۱. استخراج و رندر هدر تاریخ (مارجین بالا ۰ و پایین ۲ پیکسل تنظیم شد تا فاصله با ناوبری به حداقل برسد)
+    const formattedTehranDate = getTehranFormattedDate(currentWatchlistDayOffset);
+    const headerTarget = document.createElement('div');
+    headerTarget.className = 'today-releases-header';
+    headerTarget.style.cssText = 'margin-top: 0px; margin-bottom: 2px;';
+    headerTarget.innerHTML = `<i class="fas fa-calendar-day"></i> Releases on ${formattedTehranDate}`;
+    myListContainer.appendChild(headerTarget);
+
+    const targetReleases = [];
+    const otherReleases = [];
+
+    mySavedList.forEach((item, index) => {
+        const schedule = schedules[item.id];
+        const itemWithSchedule = { ...item, originalIndex: index, schedule };
+        
+        if (schedule && isAiringOnOffsetDayInTehran(schedule.airingAt, currentWatchlistDayOffset)) {
+            targetReleases.push(itemWithSchedule);
+        } else {
+            otherReleases.push(itemWithSchedule);
+        }
     });
+
+    // ۲. رندر کردن کارت‌های انیمه مربوط به روز انتخاب شده
+    if (targetReleases.length > 0) {
+        targetReleases.forEach(item => {
+            const card = createSavedItemCard(item, item.originalIndex, true);
+            myListContainer.appendChild(card);
+        });
+    } else {
+        // پیام خالی بودن ریلیز (پدینگ عمودی کاملاً صفر شد تا هیچ فاصله کاذبی تولید نشود)
+        const noReleasesDiv = document.createElement('div');
+        noReleasesDiv.style.cssText = 'padding: 0; margin: 0; text-align: center; color: var(--text-dim); font-size: 0.85rem;';
+        noReleasesDiv.innerText = 'No releases scheduled for this day.';
+        myListContainer.appendChild(noReleasesDiv);
+    }
+
+    // ایجاد خط جداکننده افقی (فاصله بالا و پایین خط تفکیک به ۲ پیکسل کاهش یافت تا فاصله قرمز دقیقاً نصف شود)
+    const divider = document.createElement('hr');
+    divider.className = 'watchlist-divider';
+    divider.style.cssText = 'margin: 2px 0;';
+    myListContainer.appendChild(divider);
+
+    // ۳. نمایش سایر انیمه‌های لیست تماشا در بخش پایینی
+    otherReleases.forEach(item => {
+        const card = createSavedItemCard(item, item.originalIndex, false);
+        myListContainer.appendChild(card);
+    });
+
+    // اعمال فوری زمان شمارش معکوس
+    updateWatchlistCountdowns();
+}
+
+// ۱۰. تابع ایجاد کارت‌ها در لیست تماشا
+function createSavedItemCard(item, index, isOnTargetDay) {
+    const div = document.createElement('div');
+    div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
+    const keywords = item.keywords || ''; 
+    
+    let airingBadge = '';
+    if (isOnTargetDay && item.schedule) {
+        const timeStr = getTehranAiringTime(item.schedule.airingAt);
+        const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
+
+        airingBadge = `
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span class="airing-today-badge">
+                    <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr} (Ep ${item.schedule.episode})
+                </span>
+                <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
+            </div>
+        `;
+    }
+
+    div.innerHTML = `
+        <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
+        <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
+            <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
+            ${airingBadge}
+            <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="One keyword per line. Each line will be used to match torrent titles">
+                ${keywords.split('\n').filter(k => k).join(', ')}
+            </div>
+        </div>
+        <div class="edit-keywords-box" id="edit-mode-${index}">
+            <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
+            <div class="edit-actions">
+                <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
+                <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
+            </div>
+        </div>
+        <button class="btn-remove-item" onclick="removeFromMyList(${index})"><i class="fas fa-times"></i></button>
+    `;
+    return div;
 }
 
 // سوییچ بین نمایش و ویرایش
