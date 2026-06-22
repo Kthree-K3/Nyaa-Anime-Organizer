@@ -260,7 +260,7 @@ function addToMyList(anime) {
 // متغیر سراسری برای ناوبری روزها (0 = امروز، 1- = دیروز، 1 = فردا، 2- = پریروز و...)
 let currentWatchlistDayOffset = 0;
 
-// ۱. محاسبه روز هفته به وقت تهران (0 برای یکشنبه تا 6 برای شنبه)
+// ۱. محاسبه روز هفته به وقت تهران (0 برای یکشنبه تا 6 برای شنبه) [1]
 function getTehranWeekday(timestamp) {
     const date = new Date(timestamp * 1000);
     const options = { timeZone: 'Asia/Tehran', weekday: 'short' };
@@ -269,7 +269,7 @@ function getTehranWeekday(timestamp) {
     return days.indexOf(weekdayStr);
 }
 
-// ۲. محاسبه روز هفته هدف بر اساس میزان عقب/جلو رفتن کاربر (Offset)
+// ۲. محاسبه روز هفته هدف بر اساس میزان عقب/جلو رفتن کاربر (Offset) [1]
 function getTehranTargetWeekday(offset) {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + offset);
@@ -279,7 +279,7 @@ function getTehranTargetWeekday(offset) {
     return days.indexOf(weekdayStr);
 }
 
-// ۳. تبدیل تاریخ به فرمت استاندارد انگلیسی به وقت تهران (مثال: Tuesday, June 23, 2026)
+// ۳. تبدیل تاریخ به فرمت استاندارد انگلیسی به وقت تهران (مثال: Tuesday, June 23, 2026) [1]
 function getTehranFormattedDate(offset) {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + offset);
@@ -288,7 +288,7 @@ function getTehranFormattedDate(offset) {
     return new Intl.DateTimeFormat('en-US', options).format(targetDate);
 }
 
-// ۴. دریافت نام روز هدف به صورت نسبی (Today, Yesterday, Tomorrow) یا نام روز هفته انگلیسی
+// ۴. دریافت نام روز هدف به صورت نسبی (Today, Yesterday, Tomorrow) یا نام روز هفته انگلیسی [1]
 function getRelativeDayLabel(offset) {
     if (offset === 0) return 'Today';
     if (offset === -1) return 'Yesterday';
@@ -299,7 +299,7 @@ function getRelativeDayLabel(offset) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(targetDate);
 }
 
-// ۵. دریافت اطلاعات زمان پخش انیمه‌ها از API سایت AniList
+// ۵. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
 async function fetchAiringSchedules(ids) {
     if (!ids || ids.length === 0) return {};
     
@@ -342,15 +342,15 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۶. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده)
+// ۶. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده) [1]
 function isAiringOnOffsetDayInTehran(airingAt, offset) {
     if (!airingAt) return false;
     
     if (offset < 0) {
-        // برای گذشته: استفاده از تطبیق روز هفته به دلیل عدم وجود دیتای دیروز در فیلد nextAiringEpisode
+        // برای گذشته: استفاده از تطبیق روز هفته به دلیل عدم وجود دیتای دیروز در فیلد nextAiringEpisode [1]
         return getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
     } else {
-        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها
+        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها [1]
         const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
         const formatter = new Intl.DateTimeFormat('en-US', options);
         
@@ -364,7 +364,7 @@ function isAiringOnOffsetDayInTehran(airingAt, offset) {
     }
 }
 
-// ۷. دریافت ساعت پخش به وقت تهران
+// ۷. دریافت ساعت پخش به وقت تهران [1]
 function getTehranAiringTime(airingAt) {
     if (!airingAt) return '';
     const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -372,14 +372,14 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها
+// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
         const airingAt = parseInt(el.getAttribute('data-airing-at'), 10);
         if (!airingAt) return;
         
-        // اگر در روزهای گذشته هستیم، اصلاً نباید شمارش معکوس نشان داده شود
+        // اگر در روزهای گذشته هستیم، اصلاً نباید شمارش معکوس نشان داده شود [1]
         if (currentWatchlistDayOffset < 0) {
             el.innerText = '';
             return;
@@ -389,14 +389,14 @@ function updateWatchlistCountdowns() {
         const diff = (airingAt * 1000) - now;
         
         // اگر امروز فعال است ولی تاریخ پخش بعدی بیش از ۲۴ ساعت در آینده باشد،
-        // یعنی قسمت امروز قبلاً پخش شده و API دیتای هفته بعد را باز می‌گرداند.
+        // یعنی قسمت امروز قبلاً پخش شده و API دیتای هفته بعد را باز می‌گرداند. [1]
         if (currentWatchlistDayOffset === 0 && diff > 24 * 60 * 60 * 1000) {
             el.innerText = '(Aired)';
             el.style.color = 'var(--text-dim)';
             return;
         }
         
-        // محاسبه و رندر زمان باقی‌مانده برای پخش‌های واقعی آینده
+        // محاسبه و رندر زمان باقی‌مانده برای پخش‌های واقعی آینده [1]
         if (diff > 0) {
             const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -417,10 +417,10 @@ function updateWatchlistCountdowns() {
     });
 }
 
-// اجرای مداوم آپدیت معکوس
+// اجرای مداوم آپدیت معکوس [1]
 setInterval(updateWatchlistCountdowns, 10000);
 
-// ۹. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و فاصله‌های فوق‌العاده فشرده
+// ۹. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و فاصله‌های فوق‌العاده فشرده [1]
 async function renderMySavedList() {
     myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
     
@@ -433,11 +433,11 @@ async function renderMySavedList() {
         return;
     }
 
-    // طراحی کنترلر ناوبری < Today > (فاصله عمودی پایین به ۲ پیکسل کاهش یافت)
+    // طراحی کنترلر ناوبری < Today > (فاصله عمودی پایین به ۲ پیکسل کاهش یافت) [1]
     const paginationContainer = document.createElement('div');
     paginationContainer.style.cssText = 'display: flex; gap: 10px; margin-bottom: 2px; grid-column: 1 / -1; justify-content: center; align-items: center;';
     
-    // دکمه عقب گرد روز (<)
+    // دکمه عقب گرد روز (<) [1]
     const prevBtn = document.createElement('button');
     prevBtn.className = 'sort-btn';
     prevBtn.style.padding = '6px 18px';
@@ -448,7 +448,7 @@ async function renderMySavedList() {
         renderMySavedList();
     };
 
-    // دکمه مرکز (Today / امروز)
+    // دکمه مرکز (Today / امروز) [1]
     const todayBtn = document.createElement('button');
     todayBtn.className = `sort-btn ${currentWatchlistDayOffset === 0 ? 'active' : ''}`;
     todayBtn.style.padding = '6px 20px';
@@ -460,7 +460,7 @@ async function renderMySavedList() {
         renderMySavedList();
     };
 
-    // دکمه جلو گرد روز (>)
+    // دکمه جلو گرد روز (>) [1]
     const nextBtn = document.createElement('button');
     nextBtn.className = 'sort-btn';
     nextBtn.style.padding = '6px 18px';
@@ -477,7 +477,7 @@ async function renderMySavedList() {
     
     myListContainer.appendChild(paginationContainer);
 
-    // ۱. استخراج و رندر هدر تاریخ (مارجین بالا ۰ و پایین ۲ پیکسل تنظیم شد تا فاصله با ناوبری به حداقل برسد)
+    // ۱. استخراج و رندر هدر تاریخ (مارجین بالا ۰ و پایین ۲ پیکسل تنظیم شد تا فاصله با ناوبری به حداقل برسد) [1]
     const formattedTehranDate = getTehranFormattedDate(currentWatchlistDayOffset);
     const headerTarget = document.createElement('div');
     headerTarget.className = 'today-releases-header';
@@ -499,37 +499,37 @@ async function renderMySavedList() {
         }
     });
 
-    // ۲. رندر کردن کارت‌های انیمه مربوط به روز انتخاب شده
+    // ۲. رندر کردن کارت‌های انیمه مربوط به روز انتخاب شده [1]
     if (targetReleases.length > 0) {
         targetReleases.forEach(item => {
             const card = createSavedItemCard(item, item.originalIndex, true);
             myListContainer.appendChild(card);
         });
     } else {
-        // پیام خالی بودن ریلیز (پدینگ عمودی کاملاً صفر شد تا هیچ فاصله کاذبی تولید نشود)
+        // پیام خالی بودن ریلیز (پدینگ عمودی کاملاً صفر شد تا هیچ فاصله کاذبی تولید نشود) [1]
         const noReleasesDiv = document.createElement('div');
         noReleasesDiv.style.cssText = 'padding: 0; margin: 0; text-align: center; color: var(--text-dim); font-size: 0.85rem;';
         noReleasesDiv.innerText = 'No releases scheduled for this day.';
         myListContainer.appendChild(noReleasesDiv);
     }
 
-    // ایجاد خط جداکننده افقی (فاصله بالا و پایین خط تفکیک به ۲ پیکسل کاهش یافت تا فاصله قرمز دقیقاً نصف شود)
+    // ایجاد خط جداکننده افقی (فاصله بالا و پایین خط تفکیک به ۲ پیکسل کاهش یافت تا فاصله قرمز دقیقاً نصف شود) [1]
     const divider = document.createElement('hr');
     divider.className = 'watchlist-divider';
     divider.style.cssText = 'margin: 2px 0;';
     myListContainer.appendChild(divider);
 
-    // ۳. نمایش سایر انیمه‌های لیست تماشا در بخش پایینی
+    // ۳. نمایش سایر انیمه‌های لیست تماشا در بخش پایینی [1]
     otherReleases.forEach(item => {
         const card = createSavedItemCard(item, item.originalIndex, false);
         myListContainer.appendChild(card);
     });
 
-    // اعمال فوری زمان شمارش معکوس
+    // اعمال فوری زمان شمارش معکوس [1]
     updateWatchlistCountdowns();
 }
 
-// ۱۰. تابع ایجاد کارت‌ها در لیست تماشا
+// ۱۰. تابع ایجاد کارت‌ها در لیست تماشا (بر اساس روز ناوبری، پرانتز قسمت در روزهای گذشته نمایش داده نمی‌شود) [1]
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
@@ -540,10 +540,13 @@ function createSavedItemCard(item, index, isOnTargetDay) {
         const timeStr = getTehranAiringTime(item.schedule.airingAt);
         const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
 
+        // اگر کاربر در حال مشاهده روزهای گذشته است، تگ پرانتز شماره قسمت اصلاً ساخته نمی‌شود [1]
+        const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${item.schedule.episode})`; [1]
+
         airingBadge = `
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span class="airing-today-badge">
-                    <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr} (Ep ${item.schedule.episode})
+                    <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeNum = episodeStr = episodeInfo}
                 </span>
                 <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
             </div>
