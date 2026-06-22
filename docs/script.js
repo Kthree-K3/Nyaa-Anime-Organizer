@@ -372,16 +372,31 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست
+// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
         const airingAt = parseInt(el.getAttribute('data-airing-at'), 10);
         if (!airingAt) return;
         
+        // اگر در روزهای گذشته هستیم، اصلاً نباید شمارش معکوس نشان داده شود
+        if (currentWatchlistDayOffset < 0) {
+            el.innerText = '';
+            return;
+        }
+        
         const now = Date.now();
         const diff = (airingAt * 1000) - now;
         
+        // اگر امروز فعال است ولی تاریخ پخش بعدی بیش از ۲۴ ساعت در آینده باشد،
+        // یعنی قسمت امروز قبلاً پخش شده و API دیتای هفته بعد را باز می‌گرداند.
+        if (currentWatchlistDayOffset === 0 && diff > 24 * 60 * 60 * 1000) {
+            el.innerText = '(Aired)';
+            el.style.color = 'var(--text-dim)';
+            return;
+        }
+        
+        // محاسبه و رندر زمان باقی‌مانده برای پخش‌های واقعی آینده
         if (diff > 0) {
             const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -394,6 +409,7 @@ function updateWatchlistCountdowns() {
                 timeStr = `${hours}h ${minutes}m left`;
             }
             el.innerText = `(${timeStr})`;
+            el.style.color = '#3b82f6'; 
         } else {
             el.innerText = `(Aired)`;
             el.style.color = 'var(--text-dim)'; 
