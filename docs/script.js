@@ -324,11 +324,28 @@ function getDayLabelForTimestamp(airingAt) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(airingDate);
 }
 
-// ۶. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها (ساخت و تزریق داینامیک مودال بدون نیاز به ویرایش HTML) [1]
+// ۶. محاسبه پویای شماره قسمت فرضی برای روز ناوبری جهت مدیریت انیمه‌های شروع‌نشده [1]
+function getEpisodeNumberForOffset(nextAiringAt, nextEpisode, offset) {
+    if (!nextAiringAt || !nextEpisode) return 0;
+    
+    const now = new Date();
+    const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const nextAiringDate = new Date(nextAiringAt * 1000);
+    
+    const d1 = new Date(nextAiringDate.getFullYear(), nextAiringDate.getMonth(), nextAiringDate.getDate());
+    const d2 = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    
+    const diffDays = Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+    const weeksDiff = Math.round(diffDays / 7);
+    
+    const calculatedEpisode = nextEpisode - weeksDiff;
+    return calculatedEpisode > 0 ? calculatedEpisode : 0; // اگر کمتر از ۱ باشد صفر برمی‌گرداند [1]
+}
+
+// ۷. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها [1]
 function openKeywordsModal(index) {
     let modalEl = document.getElementById('keywordsModal');
     
-    // در صورتی که مودال تا به حال در صفحه ساخته نشده باشد، آن را ایجاد می‌کنیم [1]
     if (!modalEl) {
         modalEl = document.createElement('div');
         modalEl.id = 'keywordsModal';
@@ -356,11 +373,9 @@ function openKeywordsModal(index) {
         `;
         document.body.appendChild(modalEl);
 
-        // هندلرهای بستن مودال اختصاصی [1]
         document.getElementById('btnCloseKeywordsModal').onclick = () => modalEl.style.display = 'none';
         document.getElementById('btnCancelKeywordsModal').onclick = () => modalEl.style.display = 'none';
         
-        // اضافه کردن کلیک روی خارج از پاپ‌آپ برای بستن آن [1]
         const originalWindowClick = window.onclick;
         window.onclick = function(event) {
             if (originalWindowClick) originalWindowClick(event);
@@ -370,18 +385,15 @@ function openKeywordsModal(index) {
         };
     }
 
-    // لود دیتای انیمه انتخابی درون پاپ‌آپ [1]
     const anime = mySavedList[index];
     document.getElementById('kwModalAnimeTitle').innerText = anime.romaji;
     
     const textarea = document.getElementById('kwModalTextarea');
     textarea.value = anime.keywords || '';
     
-    // فوکوس فیلد روی تکست‌اریا و هاور استایل روی بوردر در زمان کلیک
     textarea.onfocus = () => textarea.style.borderColor = 'var(--primary)';
     textarea.onblur = () => textarea.style.borderColor = 'var(--border)';
 
-    // هندلر دکمه ذخیره [1]
     document.getElementById('btnSaveKeywordsModal').onclick = function() {
         mySavedList[index].keywords = textarea.value.trim();
         localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
@@ -393,7 +405,7 @@ function openKeywordsModal(index) {
     textarea.focus();
 }
 
-// ۷. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
+// ۸. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
 async function fetchAiringSchedules(ids) {
     if (!ids || ids.length === 0) return {};
     
@@ -436,13 +448,25 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۸. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده) [1]
-function isAiringOnOffsetDayInTehran(airingAt, offset) {
+// ۹. تطبیق روز پخش با روز انتخابی کاربر (به همراه فیلتر پیشگیری از باگ انیمه‌های پخش‌نشده در گذشته) [1]
+function isAiringOnOffsetDayInTehran(airingAt, episode, offset) {
     if (!airingAt) return false;
     
     if (offset < 0) {
-        return getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
+        // ۱. ابتدا انطباق روز هفته بررسی می‌شود [1]
+        const weekdayMatches = getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
+        if (!weekdayMatches) return false;
+        
+        // ۲. پیشگیری از باگ: اگر انیمه در روز انتخابی گذشته هنوز شروع به پخش نکرده بود (شماره قسمت فرضی <= 0)، فیلتر می‌شود [1]
+        if (episode) {
+            const calculatedEp = getEpisodeNumberForOffset(airingAt, episode, offset);
+            if (calculatedEp <= 0) {
+                return false; // انیمه هنوز متولد نشده بود! [1]
+            }
+        }
+        return true;
     } else {
+        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها [1]
         const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
         const formatter = new Intl.DateTimeFormat('en-US', options);
         
@@ -456,7 +480,7 @@ function isAiringOnOffsetDayInTehran(airingAt, offset) {
     }
 }
 
-// ۹. دریافت ساعت پخش به وقت تهران [1]
+// ۱۰. دریافت ساعت پخش به وقت تهران [1]
 function getTehranAiringTime(airingAt) {
     if (!airingAt) return '';
     const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -464,7 +488,7 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۱۰. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
+// ۱۱. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
@@ -510,7 +534,7 @@ function updateWatchlistCountdowns() {
 // اجرای مداوم آپدیت معکوس [1]
 setInterval(updateWatchlistCountdowns, 10000);
 
-// ۱۱. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
+// ۱۲. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
 async function renderMySavedList() {
     myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
     
@@ -582,7 +606,8 @@ async function renderMySavedList() {
         const schedule = schedules[item.id];
         const itemWithSchedule = { ...item, originalIndex: index, schedule };
         
-        if (schedule && isAiringOnOffsetDayInTehran(schedule.airingAt, currentWatchlistDayOffset)) {
+        // ارسال متغیر اپیزود به متد برای جلوگیری از باگ تاریخ شروع پخش انیمه‌ها [1]
+        if (schedule && isAiringOnOffsetDayInTehran(schedule.airingAt, schedule.episode, currentWatchlistDayOffset)) {
             targetReleases.push(itemWithSchedule);
         } else {
             otherReleases.push(itemWithSchedule);
@@ -628,15 +653,14 @@ async function renderMySavedList() {
     updateWatchlistCountdowns();
 }
 
-
+// ۱۳. تابع ایجاد کارت‌ها در لیست تماشا [1]
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
     
-    // شمارش و پیش‌نمایش کلمات کلیدی ذخیره شده [1]
+    // شمارش کلمات کلیدی ذخیره شده [1]
     const keywordsList = (item.keywords || '').split('\n').filter(k => k.trim());
     const keywordCount = keywordsList.length;
-    const keywordsPreview = keywordsList.join(', ') || 'No keywords set';
 
     let airingBadge = '';
     if (item.schedule) {
@@ -676,7 +700,7 @@ function createSavedItemCard(item, index, isOnTargetDay) {
             <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
             ${airingBadge}
             
-
+            <!-- دکمه ویرایشگر کلیدواژه‌ها با رنگ متمایز Slate ملایم (var(--text-dim)) [1] -->
             <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
                 <button class="sort-btn" onclick="openKeywordsModal(${index})" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; background: rgba(148, 163, 184, 0.08); border-color: rgba(148, 163, 184, 0.15); color: var(--text-dim);" title="Edit matching keywords">
                     <i class="fas fa-tags" style="color: var(--text-dim);"></i> Keywords (${keywordCount})
@@ -687,6 +711,7 @@ function createSavedItemCard(item, index, isOnTargetDay) {
     `;
     return div;
 }
+
 
 
 // سوییچ بین نمایش و ویرایش
