@@ -299,7 +299,7 @@ function getRelativeDayLabel(offset) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(targetDate);
 }
 
-// ۵. تابع کمکی جدید جهت استخراج روز پخش آینده انیمه نسبت به زمان فعلی سیستم (امروز) [1]
+// ۵. تابع کمکی جهت استخراج روز پخش آینده انیمه نسبت به زمان فعلی سیستم (امروز) [1]
 function getDayLabelForTimestamp(airingAt) {
     if (!airingAt) return '';
     
@@ -324,7 +324,76 @@ function getDayLabelForTimestamp(airingAt) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(airingDate);
 }
 
-// ۶. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
+// ۶. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها (ساخت و تزریق داینامیک مودال بدون نیاز به ویرایش HTML) [1]
+function openKeywordsModal(index) {
+    let modalEl = document.getElementById('keywordsModal');
+    
+    // در صورتی که مودال تا به حال در صفحه ساخته نشده باشد، آن را ایجاد می‌کنیم [1]
+    if (!modalEl) {
+        modalEl = document.createElement('div');
+        modalEl.id = 'keywordsModal';
+        modalEl.className = 'modal';
+        modalEl.innerHTML = `
+            <div class="modal-content ltr-content" style="max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 15px;">
+                <div class="modal-header" style="margin: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+                    <h3 style="display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1.1rem; color: var(--primary);">
+                        <i class="fas fa-tags"></i> Edit Match Keywords
+                    </h3>
+                    <span class="close-modal" id="btnCloseKeywordsModal" style="cursor: pointer; line-height: 1;">&times;</span>
+                </div>
+                <div>
+                    <p style="font-size: 0.82rem; color: var(--text-dim); margin: 0 0 12px 0; line-height: 1.4;">
+                        Edit search keywords for <strong id="kwModalAnimeTitle" style="color: var(--text-main);"></strong>.<br>
+                        Write one phrase per line. These will be matched against torrent titles.
+                    </p>
+                    <textarea id="kwModalTextarea" style="width: 100%; height: 160px; background: #0b0f1a; color: white; border: 1px solid var(--border); border-radius: 8px; padding: 12px; resize: none; font-family: inherit; font-size: 0.85rem; outline: none; border-color: var(--border); transition: border-color 0.2s;" placeholder="Keywords (one per line)..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px; margin: 0;">
+                    <button id="btnCancelKeywordsModal" class="sort-btn" style="padding: 6px 16px; border-radius: 6px;">Cancel</button>
+                    <button id="btnSaveKeywordsModal" class="btn-primary" style="padding: 6px 16px; border-radius: 8px; font-size: 0.85rem;">Save Changes</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalEl);
+
+        // هندلرهای بستن مودال اختصاصی [1]
+        document.getElementById('btnCloseKeywordsModal').onclick = () => modalEl.style.display = 'none';
+        document.getElementById('btnCancelKeywordsModal').onclick = () => modalEl.style.display = 'none';
+        
+        // اضافه کردن کلیک روی خارج از پاپ‌آپ برای بستن آن [1]
+        const originalWindowClick = window.onclick;
+        window.onclick = function(event) {
+            if (originalWindowClick) originalWindowClick(event);
+            if (event.target == modalEl) {
+                modalEl.style.display = 'none';
+            }
+        };
+    }
+
+    // لود دیتای انیمه انتخابی درون پاپ‌آپ [1]
+    const anime = mySavedList[index];
+    document.getElementById('kwModalAnimeTitle').innerText = anime.romaji;
+    
+    const textarea = document.getElementById('kwModalTextarea');
+    textarea.value = anime.keywords || '';
+    
+    // فوکوس فیلد روی تکست‌اریا و هاور استایل روی بوردر در زمان کلیک
+    textarea.onfocus = () => textarea.style.borderColor = 'var(--primary)';
+    textarea.onblur = () => textarea.style.borderColor = 'var(--border)';
+
+    // هندلر دکمه ذخیره [1]
+    document.getElementById('btnSaveKeywordsModal').onclick = function() {
+        mySavedList[index].keywords = textarea.value.trim();
+        localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
+        modalEl.style.display = 'none';
+        renderMySavedList();
+    };
+
+    modalEl.style.display = 'block';
+    textarea.focus();
+}
+
+// ۷. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
 async function fetchAiringSchedules(ids) {
     if (!ids || ids.length === 0) return {};
     
@@ -367,7 +436,7 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۷. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده) [1]
+// ۸. تطبیق روز پخش با روز انتخابی کاربر (تطبیق تقریبی روز هفته برای گذشته و تطبیق دقیق تاریخ برای حال/آینده) [1]
 function isAiringOnOffsetDayInTehran(airingAt, offset) {
     if (!airingAt) return false;
     
@@ -387,7 +456,7 @@ function isAiringOnOffsetDayInTehran(airingAt, offset) {
     }
 }
 
-// ۸. دریافت ساعت پخش به وقت تهران [1]
+// ۹. دریافت ساعت پخش به وقت تهران [1]
 function getTehranAiringTime(airingAt) {
     if (!airingAt) return '';
     const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -395,7 +464,7 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۹. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
+// ۱۰. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
@@ -559,12 +628,16 @@ async function renderMySavedList() {
     updateWatchlistCountdowns();
 }
 
-// ۱۲. تابع ایجاد کارت‌ها در لیست تماشا [1]
+
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
-    const keywords = item.keywords || ''; 
     
+    // شمارش و پیش‌نمایش کلمات کلیدی ذخیره شده [1]
+    const keywordsList = (item.keywords || '').split('\n').filter(k => k.trim());
+    const keywordCount = keywordsList.length;
+    const keywordsPreview = keywordsList.join(', ') || 'No keywords set';
+
     let airingBadge = '';
     if (item.schedule) {
         const timeStr = getTehranAiringTime(item.schedule.airingAt);
@@ -599,24 +672,22 @@ function createSavedItemCard(item, index, isOnTargetDay) {
 
     div.innerHTML = `
         <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
-        <div class="saved-item-info" id="view-mode-${index}" style="display:flex; flex-direction:column; flex:1;">
+        <div class="saved-item-info" style="display:flex; flex-direction:column; flex:1; justify-content: center; gap: 4px;">
             <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
             ${airingBadge}
-            <div class="keywords-area" onclick="toggleEditKeywords(${index}, true)" title="One keyword per line. Each line will be used to match torrent titles">
-                ${keywords.split('\n').filter(k => k).join(', ')}
-            </div>
-        </div>
-        <div class="edit-keywords-box" id="edit-mode-${index}">
-            <textarea id="input-keywords-${index}" placeholder="Keywords (one per line)...">${keywords}</textarea>
-            <div class="edit-actions">
-                <button class="btn-edit-save" onclick="saveKeywords(${index})" title="Save Changes"><i class="fas fa-check-circle"></i></button>
-                <button class="btn-edit-cancel" onclick="toggleEditKeywords(${index}, false)" title="Cancel"><i class="fas fa-times-circle"></i></button>
+            
+
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 3px;">
+                <button class="sort-btn" onclick="openKeywordsModal(${index})" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; background: rgba(148, 163, 184, 0.08); border-color: rgba(148, 163, 184, 0.15); color: var(--text-dim);" title="Edit matching keywords">
+                    <i class="fas fa-tags" style="color: var(--text-dim);"></i> Keywords (${keywordCount})
+                </button>
             </div>
         </div>
         <button class="btn-remove-item" onclick="removeFromMyList(${index})"><i class="fas fa-times"></i></button>
     `;
     return div;
 }
+
 
 // سوییچ بین نمایش و ویرایش
 // سوییچ بین نمایش و ویرایش با قابلیت ریست کردن متن در صورت انصراف
