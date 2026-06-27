@@ -339,7 +339,7 @@ function getEpisodeNumberForOffset(nextAiringAt, nextEpisode, offset) {
     const weeksDiff = Math.round(diffDays / 7);
     
     const calculatedEpisode = nextEpisode - weeksDiff;
-    return calculatedEpisode > 0 ? calculatedEpisode : 0; // اگر کمتر از ۱ باشد صفر برمی‌گرداند [1]
+    return calculatedEpisode > 0 ? calculatedEpisode : 0; 
 }
 
 // ۷. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها [1]
@@ -448,36 +448,41 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۹. تطبیق روز پخش با روز انتخابی کاربر (به همراه فیلتر پیشگیری از باگ انیمه‌های پخش‌نشده در گذشته) [1]
+// ۹. تطبیق روز پخش با روز انتخابی کاربر (توسعه‌یافته جهت میخکوب ماندن انیمه‌های پخش شده‌ی امروز تا پایان روز) [1]
 function isAiringOnOffsetDayInTehran(airingAt, episode, offset) {
     if (!airingAt) return false;
     
-    if (offset < 0) {
-        // ۱. ابتدا انطباق روز هفته بررسی می‌شود [1]
-        const weekdayMatches = getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
-        if (!weekdayMatches) return false;
-        
-        // ۲. پیشگیری از باگ: اگر انیمه در روز انتخابی گذشته هنوز شروع به پخش نکرده بود (شماره قسمت فرضی <= 0)، فیلتر می‌شود [1]
-        if (episode) {
-            const calculatedEp = getEpisodeNumberForOffset(airingAt, episode, offset);
-            if (calculatedEp <= 0) {
-                return false; // انیمه هنوز متولد نشده بود! [1]
-            }
+    // ۱. ابتدا انطباق روز هفته بررسی می‌شود [1]
+    const weekdayMatches = getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
+    if (!weekdayMatches) return false;
+    
+    // ۲. پیشگیری از باگ: اگر انیمه در روز انتخابی هنوز شروع به پخش نکرده بود (شماره قسمت فرضی <= 0)، فیلتر می‌شود [1]
+    if (episode) {
+        const calculatedEp = getEpisodeNumberForOffset(airingAt, episode, offset);
+        if (calculatedEp <= 0) {
+            return false; 
         }
-        return true;
-    } else {
-        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها [1]
-        const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + offset);
-        
-        const targetStr = formatter.format(targetDate);
-        const airingStr = formatter.format(new Date(airingAt * 1000));
-        
-        return targetStr === airingStr;
     }
+
+    // ۳. بررسی بازه زمانی: اگر روز هدف امروز یا آینده است، دیتای هفته‌های بعد نباید روی امروز تاثیر بگذارد [1]
+    if (offset >= 0) {
+        const d1 = new Date(airingAt * 1000);
+        const d2 = new Date();
+        d2.setDate(d2.getDate() + offset);
+        
+        const d1Calendar = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+        const d2Calendar = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+        
+        const diffDays = Math.round((d1Calendar.getTime() - d2Calendar.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // اگر تفاوت روزها بیش از ۷ روز باشد (یعنی دیتای ریلیز پخش آینده متعلق به شنبه‌ی ۲ هفته‌ی دیگر است)، 
+        // نباید روی شنبه‌ی امروز نشان داده شود. اما تفاوت دقیقاً ۷ روزه مجاز است (یعنی قسمت امروز پخش شده و دیتای هفته‌ی بعد آمده) [1]
+        if (diffDays > 7) {
+            return false; 
+        }
+    }
+    
+    return true;
 }
 
 // ۱۰. دریافت ساعت پخش به وقت تهران [1]
@@ -615,7 +620,22 @@ async function renderMySavedList() {
     });
 
     // سورت ریلیزهای هدف (بالا) بر اساس ساعت پخش در روز جاری (از زودترین به دیرترین) [1]
-    targetReleases.sort((a, b) => a.schedule.airingAt - b.schedule.airingAt);
+    targetReleases.sort((a, b) => {
+        // محاسبه زمان پخش پویای واقعی روز هدف برای سورت دقیق زمانی روز جاری [1]
+        const aD1 = new Date(a.schedule.airingAt * 1000);
+        const aD2 = new Date();
+        aD2.setDate(aD2.getDate() + currentWatchlistDayOffset);
+        const aDiff = Math.round((new Date(aD1.getFullYear(), aD1.getMonth(), aD1.getDate()).getTime() - new Date(aD2.getFullYear(), aD2.getMonth(), aD2.getDate()).getTime()) / (1000 * 60 * 60 * 24));
+        const aTargetTime = a.schedule.airingAt - (Math.round(aDiff / 7) * 7 * 24 * 60 * 60);
+
+        const bD1 = new Date(b.schedule.airingAt * 1000);
+        const bD2 = new Date();
+        bD2.setDate(bD2.getDate() + currentWatchlistDayOffset);
+        const bDiff = Math.round((new Date(bD1.getFullYear(), bD1.getMonth(), bD1.getDate()).getTime() - new Date(bD2.getFullYear(), bD2.getMonth(), bD2.getDate()).getTime()) / (1000 * 60 * 60 * 24));
+        const bTargetTime = b.schedule.airingAt - (Math.round(bDiff / 7) * 7 * 24 * 60 * 60);
+
+        return aTargetTime - bTargetTime;
+    });
 
     // سورت ریلیزهای دیگر (پایین) بر اساس زمان باقی‌مانده (انیمه‌های بدون دیتای پخش به انتهای لیست می‌روند) [1]
     otherReleases.sort((a, b) => {
@@ -653,7 +673,7 @@ async function renderMySavedList() {
     updateWatchlistCountdowns();
 }
 
-// ۱۳. تابع ایجاد کارت‌ها در لیست تماشا [1]
+// ۱۳. تابع ایجاد کارت‌ها در لیست تماشا (با محاسبه هوشمند ساعت و اپیزود ریلیز امروز حتی در صورت رد شدن زمان پخش) [1]
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
@@ -664,12 +684,30 @@ function createSavedItemCard(item, index, isOnTargetDay) {
 
     let airingBadge = '';
     if (item.schedule) {
-        const timeStr = getTehranAiringTime(item.schedule.airingAt);
-        const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
+        // محاسبه مابه‌التفاوت هفته‌ها برای اصلاح داینامیک تاریخ و قسمت در صورت رد شدن زمان پخش [1]
+        const d1 = new Date(item.schedule.airingAt * 1000);
+        const d2 = new Date();
+        d2.setDate(d2.getDate() + currentWatchlistDayOffset);
+        
+        const d1Calendar = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+        const d2Calendar = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+        
+        const diffDays = Math.round((d1Calendar.getTime() - d2Calendar.getTime()) / (1000 * 60 * 60 * 24));
+        const weeksDiff = Math.round(diffDays / 7);
+
+        // تصحیح زمان پخش پویای واقعی روز هدف (چه پخش شده باشد و چه پخش نشده باشد) [1]
+        const targetAiringAt = item.schedule.airingAt - (weeksDiff * 7 * 24 * 60 * 60);
+        const timeStr = getTehranAiringTime(targetAiringAt);
 
         if (isOnTargetDay) {
             // برای ریلیزهای روز هدف (بالای خط جداکننده) [1]
-            const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${item.schedule.episode})`; [1]
+            const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
+            
+            // تصحیح ریاضی قسمت پخش شده‌ی امروز [1]
+            const targetEpisode = item.schedule.episode - weeksDiff;
+            
+            // در روزهای گذشته تگ پرانتز شماره قسمت اصلاً ساخته نمی‌شود [1]
+            const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${targetEpisode})`; [1]
 
             airingBadge = `
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -711,6 +749,7 @@ function createSavedItemCard(item, index, isOnTargetDay) {
     `;
     return div;
 }
+
 
 
 
