@@ -1159,7 +1159,7 @@ function renderUI() {
                     
                     <!-- دکمه انی‌لیست -->
                     <button class="header-icon-btn" title="View on AniList" onclick="event.stopPropagation(); openAnimeInfo(${i})">
-                        <img src="https://anilist.co/img/icons/favicon-32x32.png" alt="AL">
+                        <img src="favicon-anilist.png" alt="AL">
                     </button>
 
                     <!-- دکمه جدید Nyaa Proxy (مخفی شده) -->
