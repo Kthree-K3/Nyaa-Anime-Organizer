@@ -339,7 +339,7 @@ function getEpisodeNumberForOffset(nextAiringAt, nextEpisode, offset) {
     const weeksDiff = Math.round(diffDays / 7);
     
     const calculatedEpisode = nextEpisode - weeksDiff;
-    return calculatedEpisode > 0 ? calculatedEpisode : 0; 
+    return calculatedEpisode > 0 ? calculatedEpisode : 0; // اگر کمتر از ۱ باشد صفر برمی‌گرداند [1]
 }
 
 // ۷. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها [1]
@@ -405,7 +405,7 @@ function openKeywordsModal(index) {
     textarea.focus();
 }
 
-// ۸. دریافت همزمان اطلاعات قسمت آینده و آخرین قسمت پخش‌شده از API گرافی‌کیوال AniList [1]
+// ۸. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
 async function fetchAiringSchedules(ids) {
     if (!ids || ids.length === 0) return {};
     
@@ -417,12 +417,6 @@ async function fetchAiringSchedules(ids) {
                 nextAiringEpisode {
                     airingAt
                     episode
-                }
-                airingSchedule(notYetAired: false, page: 1, perPage: 1) {
-                    nodes {
-                        airingAt
-                        episode
-                    }
                 }
             }
         }
@@ -442,14 +436,9 @@ async function fetchAiringSchedules(ids) {
         
         if (json?.data?.Page?.media) {
             json.data.Page.media.forEach(anime => {
-                const next = anime.nextAiringEpisode;
-                const lastNode = anime.airingSchedule?.nodes?.[0];
-                
-                // بسته‌بندی همزمان دیتای گذشته و آینده برای پایداری کامل تا انتهای روز ریلیز انیمه [1]
-                schedules[anime.id] = {
-                    next: next ? { airingAt: next.airingAt, episode: next.episode } : null,
-                    last: lastNode ? { airingAt: lastNode.airingAt, episode: lastNode.episode } : null
-                };
+                if (anime.nextAiringEpisode) {
+                    schedules[anime.id] = anime.nextAiringEpisode;
+                }
             });
         }
         return schedules;
@@ -459,20 +448,25 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۹. تابع کمکی بررسی انطباق تاریخی یک تایم‌استمپ خاص با افست روز انتخابی [1]
-function checkAiringAtMatchesOffset(airingAt, episode, offset) {
+// ۹. تطبیق روز پخش با روز انتخابی کاربر (به همراه فیلتر پیشگیری از باگ انیمه‌های پخش‌نشده در گذشته) [1]
+function isAiringOnOffsetDayInTehran(airingAt, episode, offset) {
+    if (!airingAt) return false;
+    
     if (offset < 0) {
+        // ۱. ابتدا انطباق روز هفته بررسی می‌شود [1]
         const weekdayMatches = getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
         if (!weekdayMatches) return false;
         
+        // ۲. پیشگیری از باگ: اگر انیمه در روز انتخابی گذشته هنوز شروع به پخش نکرده بود (شماره قسمت فرضی <= 0)، فیلتر می‌شود [1]
         if (episode) {
             const calculatedEp = getEpisodeNumberForOffset(airingAt, episode, offset);
             if (calculatedEp <= 0) {
-                return false; 
+                return false; // انیمه هنوز متولد نشده بود! [1]
             }
         }
         return true;
     } else {
+        // برای امروز و آینده: مقایسه دقیق و ریاضی تاریخ میلادی به وقت تهران جهت جلوگیری از تداخل تاخیرها [1]
         const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
         const formatter = new Intl.DateTimeFormat('en-US', options);
         
@@ -486,45 +480,7 @@ function checkAiringAtMatchesOffset(airingAt, episode, offset) {
     }
 }
 
-// ۱۰. تطبیق روز پخش با روز انتخابی کاربر (تطبیق همزمان اطلاعات قسمت گذشته و آینده برای پایداری ریلیز امروز) [1]
-function isAiringOnOffsetDayInTehran(schedule, offset) {
-    if (!schedule) return false;
-    
-    // ۱. بررسی می‌کنیم آیا اپیزود آینده امروز پخش می‌شود؟ (اگر هنوز پخش نشده باشد) [1]
-    if (schedule.next && checkAiringAtMatchesOffset(schedule.next.airingAt, schedule.next.episode, offset)) {
-        return true;
-    }
-    
-    // ۲. بررسی می‌کنیم آیا اپیزود آخر امروز پخش شده است؟ (اگر از مرز ساعت پخش عبور کرده باشد) [1]
-    if (schedule.last && checkAiringAtMatchesOffset(schedule.last.airingAt, schedule.last.episode, offset)) {
-        return true;
-    }
-    
-    return false;
-}
-
-// ۱۱. استخراج فعال‌ترین دیتای زمان‌بندی برای روز انتخابی کاربر [1]
-function getActiveScheduleForOffset(schedule, offset) {
-    if (!schedule) return null;
-    
-    // اولویت اول: اپیزود آینده منطبق بر روز انتخابی (تایمر معکوس خواهد داشت) [1]
-    if (schedule.next && checkAiringAtMatchesOffset(schedule.next.airingAt, schedule.next.episode, offset)) {
-        return { ...schedule.next, isFuture: true };
-    }
-    
-    // اولویت دوم: اپیزود گذشته منطبق بر روز انتخابی (تایمر نخواهد داشت و Aired می‌خورد) [1]
-    if (schedule.last && checkAiringAtMatchesOffset(schedule.last.airingAt, schedule.last.episode, offset)) {
-        return { ...schedule.last, isFuture: false };
-    }
-    
-    // اولویت‌های پیش‌فرض برای انیمه‌های پایین لیست (سایر ریلیزها) [1]
-    if (schedule.next) return { ...schedule.next, isFuture: true };
-    if (schedule.last) return { ...schedule.last, isFuture: false };
-    
-    return null;
-}
-
-// ۱۲. دریافت ساعت پخش به وقت تهران [1]
+// ۱۰. دریافت ساعت پخش به وقت تهران [1]
 function getTehranAiringTime(airingAt) {
     if (!airingAt) return '';
     const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -532,7 +488,7 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۱۳. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق ارتقایافته‌ی isFuture [1]
+// ۱۱. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
@@ -540,33 +496,21 @@ function updateWatchlistCountdowns() {
         if (!airingAt) return;
         
         const isTargetDay = el.getAttribute('data-is-target-day') === 'true';
-        const isFuture = el.getAttribute('data-is-future') === 'true';
         
-        // اگر انیمه مربوط به روز هدف است و در تاریخ‌های گذشته هستیم، تایمر را کلاً پاک می‌کنیم [1]
         if (isTargetDay && currentWatchlistDayOffset < 0) {
             el.innerText = '';
-            return;
-        }
-        
-        // اگر اپیزود پخش شده باشد (isFuture غبرفعال باشد)، تایمر را خاموش کرده و Aired می‌زنیم [1]
-        if (!isFuture) {
-            el.innerText = '(Aired)';
-            el.style.color = 'var(--text-dim)';
             return;
         }
         
         const now = Date.now();
         const diff = (airingAt * 1000) - now;
         
-        // اگر امروز فعال است ولی تاریخ پخش بعدی بیش از ۲۴ ساعت در آینده باشد،
-        // یعنی قسمت امروز قبلاً پخش شده و API دیتای هفته بعد را باز می‌گرداند. [1]
         if (isTargetDay && currentWatchlistDayOffset === 0 && diff > 24 * 60 * 60 * 1000) {
             el.innerText = '(Aired)';
             el.style.color = 'var(--text-dim)';
             return;
         }
         
-        // محاسبه و رندر زمان باقی‌مانده برای پخش‌های واقعی آینده [1]
         if (diff > 0) {
             const daysLeft = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -590,7 +534,7 @@ function updateWatchlistCountdowns() {
 // اجرای مداوم آپدیت معکوس [1]
 setInterval(updateWatchlistCountdowns, 10000);
 
-// ۱۴. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی بر پایه اطلاعات جفت گذشته و آینده [1]
+// ۱۲. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
 async function renderMySavedList() {
     myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
     
@@ -662,8 +606,8 @@ async function renderMySavedList() {
         const schedule = schedules[item.id];
         const itemWithSchedule = { ...item, originalIndex: index, schedule };
         
-        // ارسال شی کامل زمان‌بندی به متد برای انطباق گذشته و آینده [1]
-        if (schedule && isAiringOnOffsetDayInTehran(schedule, currentWatchlistDayOffset)) {
+        // ارسال متغیر اپیزود به متد برای جلوگیری از باگ تاریخ شروع پخش انیمه‌ها [1]
+        if (schedule && isAiringOnOffsetDayInTehran(schedule.airingAt, schedule.episode, currentWatchlistDayOffset)) {
             targetReleases.push(itemWithSchedule);
         } else {
             otherReleases.push(itemWithSchedule);
@@ -671,20 +615,12 @@ async function renderMySavedList() {
     });
 
     // سورت ریلیزهای هدف (بالا) بر اساس ساعت پخش در روز جاری (از زودترین به دیرترین) [1]
-    targetReleases.sort((a, b) => {
-        const aActive = getActiveScheduleForOffset(a.schedule, currentWatchlistDayOffset);
-        const bActive = getActiveScheduleForOffset(b.schedule, currentWatchlistDayOffset);
-        const aTime = aActive ? aActive.airingAt : Infinity;
-        const bTime = bActive ? bActive.airingAt : Infinity;
-        return aTime - bTime;
-    });
+    targetReleases.sort((a, b) => a.schedule.airingAt - b.schedule.airingAt);
 
     // سورت ریلیزهای دیگر (پایین) بر اساس زمان باقی‌مانده (انیمه‌های بدون دیتای پخش به انتهای لیست می‌روند) [1]
     otherReleases.sort((a, b) => {
-        const aActive = getActiveScheduleForOffset(a.schedule, currentWatchlistDayOffset);
-        const bActive = getActiveScheduleForOffset(b.schedule, currentWatchlistDayOffset);
-        const aTime = aActive ? aActive.airingAt : Infinity;
-        const bTime = bActive ? bActive.airingAt : Infinity;
+        const aTime = a.schedule ? a.schedule.airingAt : Infinity;
+        const bTime = b.schedule ? b.schedule.airingAt : Infinity;
         return aTime - bTime;
     });
 
@@ -717,7 +653,7 @@ async function renderMySavedList() {
     updateWatchlistCountdowns();
 }
 
-// ۱۵. تابع ایجاد کارت‌ها در لیست تماشا [1]
+// ۱۳. تابع ایجاد کارت‌ها در لیست تماشا [1]
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
@@ -727,34 +663,32 @@ function createSavedItemCard(item, index, isOnTargetDay) {
     const keywordCount = keywordsList.length;
 
     let airingBadge = '';
-    const activeSchedule = getActiveScheduleForOffset(item.schedule, currentWatchlistDayOffset);
-
-    if (item.schedule && activeSchedule) {
-        const timeStr = getTehranAiringTime(activeSchedule.airingAt);
+    if (item.schedule) {
+        const timeStr = getTehranAiringTime(item.schedule.airingAt);
         const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
 
         if (isOnTargetDay) {
             // برای ریلیزهای روز هدف (بالای خط جداکننده) [1]
-            const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${activeSchedule.episode})`; [1]
+            const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${item.schedule.episode})`; [1]
 
             airingBadge = `
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span class="airing-today-badge">
                         <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeInfo}
                     </span>
-                    <span class="airing-today-countdown" data-airing-at="${activeSchedule.airingAt}" data-is-future="${activeSchedule.isFuture}" data-is-target-day="true" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
+                    <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" data-is-target-day="true" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
                 </div>
             `;
         } else {
             // برای ریلیزهای کلی دیگر (پایین خط جداکننده) [1]
-            const dayLabel = getDayLabelForTimestamp(activeSchedule.airingAt);
+            const dayLabel = getDayLabelForTimestamp(item.schedule.airingAt);
 
             airingBadge = `
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span class="airing-today-badge" style="background: rgba(148, 163, 184, 0.1); color: var(--text-dim); border: 1px solid rgba(148, 163, 184, 0.15);">
-                        <i class="far fa-clock"></i> ${dayLabel} at ${timeStr} (Ep ${activeSchedule.episode})
+                        <i class="far fa-clock"></i> ${dayLabel} at ${timeStr} (Ep ${item.schedule.episode})
                     </span>
-                    <span class="airing-today-countdown" data-airing-at="${activeSchedule.airingAt}" data-is-future="${activeSchedule.isFuture}" data-is-target-day="false" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
+                    <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" data-is-target-day="false" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
                 </div>
             `;
         }
@@ -1577,4 +1511,3 @@ window.openAnimeInfoById = async function(id) {
         aniListContent.innerHTML = `<div style="color:var(--error); padding:20px; text-align:center;">Error loading details.</div>`;
     }
 };
-
