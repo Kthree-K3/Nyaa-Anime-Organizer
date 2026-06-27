@@ -260,26 +260,7 @@ function addToMyList(anime) {
 // متغیر سراسری برای ناوبری روزها (0 = امروز، 1- = دیروز، 1 = فردا، 2- = پریروز و...)
 let currentWatchlistDayOffset = 0;
 
-// ۱. محاسبه روز هفته به وقت تهران (0 برای یکشنبه تا 6 برای شنبه) [1]
-function getTehranWeekday(timestamp) {
-    const date = new Date(timestamp * 1000);
-    const options = { timeZone: 'Asia/Tehran', weekday: 'short' };
-    const weekdayStr = new Intl.DateTimeFormat('en-US', options).format(date);
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days.indexOf(weekdayStr);
-}
-
-// ۲. محاسبه روز هفته هدف بر اساس میزان عقب/جلو رفتن کاربر (Offset) [1]
-function getTehranTargetWeekday(offset) {
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + offset);
-    const options = { timeZone: 'Asia/Tehran', weekday: 'short' };
-    const weekdayStr = new Intl.DateTimeFormat('en-US', options).format(targetDate);
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days.indexOf(weekdayStr);
-}
-
-// ۳. تبدیل تاریخ به فرمت استاندارد انگلیسی به وقت تهران (مثال: Tuesday, June 23, 2026) [1]
+// ۱. تبدیل تاریخ به فرمت استاندارد انگلیسی به وقت تهران (مثال: Tuesday, June 23, 2026) [1]
 function getTehranFormattedDate(offset) {
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + offset);
@@ -288,7 +269,7 @@ function getTehranFormattedDate(offset) {
     return new Intl.DateTimeFormat('en-US', options).format(targetDate);
 }
 
-// ۴. دریافت نام روز هدف به صورت نسبی (Today, Yesterday, Tomorrow) یا نام روز هفته انگلیسی [1]
+// ۲. دریافت نام روز هدف به صورت نسبی (Today, Yesterday, Tomorrow) یا نام روز هفته انگلیسی [1]
 function getRelativeDayLabel(offset) {
     if (offset === 0) return 'Today';
     if (offset === -1) return 'Yesterday';
@@ -299,7 +280,7 @@ function getRelativeDayLabel(offset) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(targetDate);
 }
 
-// ۵. تابع کمکی جهت استخراج روز پخش آینده انیمه نسبت به زمان فعلی سیستم (امروز) [1]
+// ۳. تابع کمکی جهت استخراج روز پخش آینده انیمه نسبت به زمان فعلی سیستم (امروز) [1]
 function getDayLabelForTimestamp(airingAt) {
     if (!airingAt) return '';
     
@@ -324,25 +305,7 @@ function getDayLabelForTimestamp(airingAt) {
     return new Intl.DateTimeFormat('en-US', { weekday: 'long', timeZone: 'Asia/Tehran' }).format(airingDate);
 }
 
-// ۶. محاسبه پویای شماره قسمت فرضی برای روز ناوبری جهت مدیریت انیمه‌های شروع‌نشده [1]
-function getEpisodeNumberForOffset(nextAiringAt, nextEpisode, offset) {
-    if (!nextAiringAt || !nextEpisode) return 0;
-    
-    const now = new Date();
-    const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
-    const nextAiringDate = new Date(nextAiringAt * 1000);
-    
-    const d1 = new Date(nextAiringDate.getFullYear(), nextAiringDate.getMonth(), nextAiringDate.getDate());
-    const d2 = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    
-    const diffDays = Math.round((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
-    const weeksDiff = Math.round(diffDays / 7);
-    
-    const calculatedEpisode = nextEpisode - weeksDiff;
-    return calculatedEpisode > 0 ? calculatedEpisode : 0; 
-}
-
-// ۷. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها [1]
+// ۴. تابع باز کردن مودال اختصاصی ویرایش کلیدواژه‌ها [1]
 function openKeywordsModal(index) {
     let modalEl = document.getElementById('keywordsModal');
     
@@ -405,7 +368,7 @@ function openKeywordsModal(index) {
     textarea.focus();
 }
 
-// ۸. دریافت اطلاعات زمان پخش انیمه‌ها (ساده و سبک) از API سایت AniList [1]
+// ۵. دریافت همزمان آرشیو گذشته و آینده زمان پخش از API سایت AniList [1]
 async function fetchAiringSchedules(ids) {
     if (!ids || ids.length === 0) return {};
     
@@ -417,6 +380,12 @@ async function fetchAiringSchedules(ids) {
                 nextAiringEpisode {
                     airingAt
                     episode
+                }
+                airingSchedule(notYetAired: false, page: 1, perPage: 100) {
+                    nodes {
+                        airingAt
+                        episode
+                    }
                 }
             }
         }
@@ -436,9 +405,11 @@ async function fetchAiringSchedules(ids) {
         
         if (json?.data?.Page?.media) {
             json.data.Page.media.forEach(anime => {
-                if (anime.nextAiringEpisode) {
-                    schedules[anime.id] = anime.nextAiringEpisode;
-                }
+                // ثبت دقیق پکیج کامل پخش‌های آینده و گذشته [1]
+                schedules[anime.id] = {
+                    next: anime.nextAiringEpisode || null,
+                    past: anime.airingSchedule?.nodes || []
+                };
             });
         }
         return schedules;
@@ -448,44 +419,36 @@ async function fetchAiringSchedules(ids) {
     }
 }
 
-// ۹. تطبیق روز پخش با روز انتخابی کاربر (توسعه‌یافته جهت میخکوب ماندن انیمه‌های پخش شده‌ی امروز تا پایان روز) [1]
-function isAiringOnOffsetDayInTehran(airingAt, episode, offset) {
-    if (!airingAt) return false;
+// ۶. تطبیق ریاضی و ۱۰۰٪ واقعی تاریخ پخش‌ها بدون حدس و گمان‌های فرمولی (مقاوم در برابر تاخیرها و وققه‌ها) [1]
+function isAiringOnOffsetDayInTehran(mediaId, schedule, offset) {
+    if (!schedule) return false;
     
-    // ۱. ابتدا انطباق روز هفته بررسی می‌شود [1]
-    const weekdayMatches = getTehranWeekday(airingAt) === getTehranTargetWeekday(offset);
-    if (!weekdayMatches) return false;
+    const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
+    const formatter = new Intl.DateTimeFormat('en-US', options);
     
-    // ۲. پیشگیری از باگ: اگر انیمه در روز انتخابی هنوز شروع به پخش نکرده بود (شماره قسمت فرضی <= 0)، فیلتر می‌شود [1]
-    if (episode) {
-        const calculatedEp = getEpisodeNumberForOffset(airingAt, episode, offset);
-        if (calculatedEp <= 0) {
-            return false; 
-        }
-    }
-
-    // ۳. بررسی بازه زمانی: اگر روز هدف امروز یا آینده است، دیتای هفته‌های بعد نباید روی امروز تاثیر بگذارد [1]
-    if (offset >= 0) {
-        const d1 = new Date(airingAt * 1000);
-        const d2 = new Date();
-        d2.setDate(d2.getDate() + offset);
-        
-        const d1Calendar = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
-        const d2Calendar = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
-        
-        const diffDays = Math.round((d1Calendar.getTime() - d2Calendar.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // اگر تفاوت روزها بیش از ۷ روز باشد (یعنی دیتای ریلیز پخش آینده متعلق به شنبه‌ی ۲ هفته‌ی دیگر است)، 
-        // نباید روی شنبه‌ی امروز نشان داده شود. اما تفاوت دقیقاً ۷ روزه مجاز است (یعنی قسمت امروز پخش شده و دیتای هفته‌ی بعد آمده) [1]
-        if (diffDays > 7) {
-            return false; 
-        }
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offset);
+    const targetStr = formatter.format(targetDate);
+    
+    // الف) مقایسه با تاریخ واقعی قسمت آینده (Next) [1]
+    if (schedule.next) {
+        const nextStr = formatter.format(new Date(schedule.next.airingAt * 1000));
+        if (targetStr === nextStr) return true;
     }
     
-    return true;
+    // ب) مقایسه با تاریخ‌های واقعی و ثبت‌شده تمام قسمت‌های گذشته (Past) [1]
+    if (schedule.past && schedule.past.length > 0) {
+        const matchedPast = schedule.past.some(node => {
+            const pastStr = formatter.format(new Date(node.airingAt * 1000));
+            return targetStr === pastStr;
+        });
+        if (matchedPast) return true;
+    }
+    
+    return false;
 }
 
-// ۱۰. دریافت ساعت پخش به وقت تهران [1]
+// ۷. دریافت ساعت پخش به وقت تهران [1]
 function getTehranAiringTime(airingAt) {
     if (!airingAt) return '';
     const options = { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -493,7 +456,7 @@ function getTehranAiringTime(airingAt) {
     return formatter.format(new Date(airingAt * 1000));
 }
 
-// ۱۱. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
+// ۸. محاسبه و به‌روزرسانی تایمرهای معکوس داینامیک در لیست با منطق جدید عدم نمایش تایمر برای پخش‌شده‌ها [1]
 function updateWatchlistCountdowns() {
     const countdowns = document.querySelectorAll('.airing-today-countdown');
     countdowns.forEach(el => {
@@ -539,7 +502,7 @@ function updateWatchlistCountdowns() {
 // اجرای مداوم آپدیت معکوس [1]
 setInterval(updateWatchlistCountdowns, 10000);
 
-// ۱۲. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
+// ۹. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
 async function renderMySavedList() {
     myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
     
@@ -611,8 +574,8 @@ async function renderMySavedList() {
         const schedule = schedules[item.id];
         const itemWithSchedule = { ...item, originalIndex: index, schedule };
         
-        // ارسال متغیر اپیزود به متد برای جلوگیری از باگ تاریخ شروع پخش انیمه‌ها [1]
-        if (schedule && isAiringOnOffsetDayInTehran(schedule.airingAt, schedule.episode, currentWatchlistDayOffset)) {
+        // ارسال مستقیم پکیج کامل پخش‌ها جهت ارزیابی ریاضی و واقعی تاریخ [1]
+        if (schedule && isAiringOnOffsetDayInTehran(item.id, schedule, currentWatchlistDayOffset)) {
             targetReleases.push(itemWithSchedule);
         } else {
             otherReleases.push(itemWithSchedule);
@@ -621,26 +584,37 @@ async function renderMySavedList() {
 
     // سورت ریلیزهای هدف (بالا) بر اساس ساعت پخش در روز جاری (از زودترین به دیرترین) [1]
     targetReleases.sort((a, b) => {
-        // محاسبه زمان پخش پویای واقعی روز هدف برای سورت دقیق زمانی روز جاری [1]
-        const aD1 = new Date(a.schedule.airingAt * 1000);
-        const aD2 = new Date();
-        aD2.setDate(aD2.getDate() + currentWatchlistDayOffset);
-        const aDiff = Math.round((new Date(aD1.getFullYear(), aD1.getMonth(), aD1.getDate()).getTime() - new Date(aD2.getFullYear(), aD2.getMonth(), aD2.getDate()).getTime()) / (1000 * 60 * 60 * 24));
-        const aTargetTime = a.schedule.airingAt - (Math.round(aDiff / 7) * 7 * 24 * 60 * 60);
+        // محاسبه زمان دقیق پخش روز جاری از روی تقویم رسمی جهت مرتب‌سازی درست [1]
+        const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
+        const formatter = new Intl.DateTimeFormat('en-US', options);
+        
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + currentWatchlistDayOffset);
+        const targetStr = formatter.format(targetDate);
+        
+        let aTime = 0;
+        if (a.schedule.next && formatter.format(new Date(a.schedule.next.airingAt * 1000)) === targetStr) {
+            aTime = a.schedule.next.airingAt;
+        } else if (a.schedule.past) {
+            const match = a.schedule.past.find(node => formatter.format(new Date(node.airingAt * 1000)) === targetStr);
+            if (match) aTime = match.airingAt;
+        }
 
-        const bD1 = new Date(b.schedule.airingAt * 1000);
-        const bD2 = new Date();
-        bD2.setDate(bD2.getDate() + currentWatchlistDayOffset);
-        const bDiff = Math.round((new Date(bD1.getFullYear(), bD1.getMonth(), bD1.getDate()).getTime() - new Date(bD2.getFullYear(), bD2.getMonth(), bD2.getDate()).getTime()) / (1000 * 60 * 60 * 24));
-        const bTargetTime = b.schedule.airingAt - (Math.round(bDiff / 7) * 7 * 24 * 60 * 60);
+        let bTime = 0;
+        if (b.schedule.next && formatter.format(new Date(b.schedule.next.airingAt * 1000)) === targetStr) {
+            bTime = b.schedule.next.airingAt;
+        } else if (b.schedule.past) {
+            const match = b.schedule.past.find(node => formatter.format(new Date(node.airingAt * 1000)) === targetStr);
+            if (match) bTime = match.airingAt;
+        }
 
-        return aTargetTime - bTargetTime;
+        return aTime - bTime;
     });
 
-    // سورت ریلیزهای دیگر (پایین) بر اساس زمان باقی‌مانده (انیمه‌های بدون دیتای پخش به انتهای لیست می‌روند) [1]
+    // سورت ریلیزهای دیگر (پایین) بر اساس زمان باقی‌مانده [1]
     otherReleases.sort((a, b) => {
-        const aTime = a.schedule ? a.schedule.airingAt : Infinity;
-        const bTime = b.schedule ? b.schedule.airingAt : Infinity;
+        const aTime = (a.schedule && a.schedule.next) ? a.schedule.next.airingAt : Infinity;
+        const bTime = (b.schedule && b.schedule.next) ? b.schedule.next.airingAt : Infinity;
         return aTime - bTime;
     });
 
@@ -673,7 +647,7 @@ async function renderMySavedList() {
     updateWatchlistCountdowns();
 }
 
-// ۱۳. تابع ایجاد کارت‌ها در لیست تماشا (با محاسبه هوشمند ساعت و اپیزود ریلیز امروز حتی در صورت رد شدن زمان پخش) [1]
+// ۱۰. تابع ایجاد کارت‌ها در لیست تماشا (بر پایه خواندن اطلاعات ۱۰۰٪ واقعی پخش از پکیج تقویم) [1]
 function createSavedItemCard(item, index, isOnTargetDay) {
     const div = document.createElement('div');
     div.className = `saved-item ${isOnTargetDay ? 'is-today-airing' : ''}`;
@@ -684,49 +658,48 @@ function createSavedItemCard(item, index, isOnTargetDay) {
 
     let airingBadge = '';
     if (item.schedule) {
-        // محاسبه مابه‌التفاوت هفته‌ها برای اصلاح داینامیک تاریخ و قسمت در صورت رد شدن زمان پخش [1]
-        const d1 = new Date(item.schedule.airingAt * 1000);
-        const d2 = new Date();
-        d2.setDate(d2.getDate() + currentWatchlistDayOffset);
+        const options = { timeZone: 'Asia/Tehran', year: 'numeric', month: 'numeric', day: 'numeric' };
+        const formatter = new Intl.DateTimeFormat('en-US', options);
         
-        const d1Calendar = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
-        const d2Calendar = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
-        
-        const diffDays = Math.round((d1Calendar.getTime() - d2Calendar.getTime()) / (1000 * 60 * 60 * 24));
-        const weeksDiff = Math.round(diffDays / 7);
-
-        // تصحیح زمان پخش پویای واقعی روز هدف (چه پخش شده باشد و چه پخش نشده باشد) [1]
-        const targetAiringAt = item.schedule.airingAt - (weeksDiff * 7 * 24 * 60 * 60);
-        const timeStr = getTehranAiringTime(targetAiringAt);
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + currentWatchlistDayOffset);
+        const targetStr = formatter.format(targetDate);
 
         if (isOnTargetDay) {
-            // برای ریلیزهای روز هدف (بالای خط جداکننده) [1]
-            const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
-            
-            // تصحیح ریاضی قسمت پخش شده‌ی امروز [1]
-            const targetEpisode = item.schedule.episode - weeksDiff;
-            
-            // در روزهای گذشته تگ پرانتز شماره قسمت اصلاً ساخته نمی‌شود [1]
-            const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${targetEpisode})`; [1]
+            // استخراج رکورد دقیق و منطبق با این روز از گذشته یا آینده بدون خطای ریاضی [1]
+            let matchedNode = null;
+            if (item.schedule.next && formatter.format(new Date(item.schedule.next.airingAt * 1000)) === targetStr) {
+                matchedNode = item.schedule.next;
+            } else if (item.schedule.past) {
+                matchedNode = item.schedule.past.find(node => formatter.format(new Date(node.airingAt * 1000)) === targetStr);
+            }
 
-            airingBadge = `
-                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <span class="airing-today-badge">
-                        <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeInfo}
-                    </span>
-                    <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" data-is-target-day="true" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
-                </div>
-            `;
-        } else {
-            // برای ریلیزهای کلی دیگر (پایین خط جداکننده) [1]
-            const dayLabel = getDayLabelForTimestamp(item.schedule.airingAt);
+            if (matchedNode) {
+                const timeStr = getTehranAiringTime(matchedNode.airingAt);
+                const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
+                const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${matchedNode.episode})`; [1]
+
+                // استفاده از زمان پخش دقیق همین روز برای ثبات بخش تایمر معکوس [1]
+                airingBadge = `
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <span class="airing-today-badge">
+                            <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeInfo}
+                        </span>
+                        <span class="airing-today-countdown" data-airing-at="${matchedNode.airingAt}" data-is-target-day="true" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
+                    </div>
+                `;
+            }
+        } else if (item.schedule.next) {
+            // برای ریلیزهای کلی دیگر (پایین خط جداکننده) - فقط انیمه‌های در جریان با قسمت آینده را نشان می‌دهد [1]
+            const timeStr = getTehranAiringTime(item.schedule.next.airingAt);
+            const dayLabel = getDayLabelForTimestamp(item.schedule.next.airingAt);
 
             airingBadge = `
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                     <span class="airing-today-badge" style="background: rgba(148, 163, 184, 0.1); color: var(--text-dim); border: 1px solid rgba(148, 163, 184, 0.15);">
-                        <i class="far fa-clock"></i> ${dayLabel} at ${timeStr} (Ep ${item.schedule.episode})
+                        <i class="far fa-clock"></i> ${dayLabel} at ${timeStr} (Ep ${item.schedule.next.episode})
                     </span>
-                    <span class="airing-today-countdown" data-airing-at="${item.schedule.airingAt}" data-is-target-day="false" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
+                    <span class="airing-today-countdown" data-airing-at="${item.schedule.next.airingAt}" data-is-target-day="false" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
                 </div>
             `;
         }
@@ -749,6 +722,7 @@ function createSavedItemCard(item, index, isOnTargetDay) {
     `;
     return div;
 }
+
 
 
 
