@@ -677,13 +677,13 @@ function createSavedItemCard(item, index, isOnTargetDay) {
             if (matchedNode) {
                 const timeStr = getTehranAiringTime(matchedNode.airingAt);
                 const relativeDayLabel = getRelativeDayLabel(currentWatchlistDayOffset);
-                const episodeInfo = currentWatchlistDayOffset < 0 ? '' : ` (Ep ${matchedNode.episode})`; [1]
+                const episodeInfo = ` (Ep ${matchedNode.episode})`;
 
                 // استفاده از زمان پخش دقیق همین روز برای ثبات بخش تایمر معکوس [1]
                 airingBadge = `
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                   <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <span class="airing-today-badge">
-                            <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeInfo}
+                           <i class="far fa-clock"></i> ${relativeDayLabel} at ${timeStr}${episodeInfo}
                         </span>
                         <span class="airing-today-countdown" data-airing-at="${matchedNode.airingAt}" data-is-target-day="true" style="font-size: 0.75rem; color: #3b82f6; font-weight: bold; margin-bottom: 5px;"></span>
                     </div>
