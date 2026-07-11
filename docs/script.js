@@ -474,7 +474,7 @@ function updateWatchlistCountdowns() {
         const diff = (airingAt * 1000) - now;
         
         if (isTargetDay && currentWatchlistDayOffset === 0 && diff > 24 * 60 * 60 * 1000) {
-            el.innerText = '(Aired)';
+            el.innerText = 'Aired';
             el.style.color = 'var(--text-dim)';
             return;
         }
@@ -493,7 +493,7 @@ function updateWatchlistCountdowns() {
             el.innerText = `(${timeStr})`;
             el.style.color = '#3b82f6'; 
         } else {
-            el.innerText = `(Aired)`;
+            el.innerText = `Aired`;
             el.style.color = 'var(--text-dim)'; 
         }
     });
