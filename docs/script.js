@@ -193,7 +193,7 @@ myListFilter.onchange = function() {
 btnOpenMyList.onclick = function() {
     modal.style.display = "block";
     renderMySavedList();
-    myListSearchInput.focus();
+    
 
     // بررسی وجود فیلتر در بخش لیست من
     let myListSort = document.getElementById('myListSortSelect');
