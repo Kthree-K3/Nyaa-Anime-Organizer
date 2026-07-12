@@ -641,6 +641,6 @@ input:checked + .slider:before { transform: translateX(22px); }
     gap: 5px;
 }
 
-.github-footer-link:hover {
+.github-header-link:hover {
     color: var(--primary) !important;
 }
