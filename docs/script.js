@@ -1162,9 +1162,9 @@ function renderUI() {
                         <img src="favicon-anilist.png" alt="AL">
                     </button>
 
-                    <!-- دکمه جدید Nyaa Proxy (مخفی شده) -->
-                    <button class="header-icon-btn" style="display: none;" title="Search Nyaa Proxy" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
-                        <img src="favicon-Red.ico" alt="N">
+                    <!-- دکمه جدید MAL -->
+                    <button class="header-icon-btn" title="Search MAL" onclick="event.stopPropagation(); window.open('https://myanimelist.net/anime.php?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
+                        <img src="favicon-mal.ico" alt="MAL">
                     </button>
 
                     
