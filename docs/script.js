@@ -51,7 +51,7 @@ clearMyListSearch.onclick = function() {
 
 // لود کردن دیتای ذخیره شده
 let mySavedList = JSON.parse(localStorage.getItem('mySmartAnimeList') || "[]");
-
+let cachedSchedules = null;
 function log(msg, type = 'info') {
     const colors = { error: '#f87171', success: '#4ade80', info: '#94a3b8' };
     const div = document.createElement('div');
@@ -252,7 +252,7 @@ function addToMyList(anime) {
         cover: anime.cover,
         keywords: Array.from(keywordSet).join('\n')
     });
-    
+    cachedSchedules = null;
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     renderMySavedList();
 }
@@ -504,17 +504,17 @@ setInterval(updateWatchlistCountdowns, 10000);
 
 // ۹. تابع اصلی رندر لیست هوشمند تماشا با کنترلر ناوبری انگلیسی و موتور مرتب‌سازی زمانی [1]
 async function renderMySavedList() {
-    myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
-    
     const ids = mySavedList.map(item => item.id);
-    const schedules = await fetchAiringSchedules(ids);
     
-    myListContainer.innerHTML = '';
-    if (mySavedList.length === 0) {
-        myListContainer.innerHTML = '<div style="color:gray; grid-column:1/-1; text-align:center; padding:20px;">List is empty. Search to add.</div>';
-        return;
+    
+ if (!cachedSchedules) {
+        myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
+        cachedSchedules = await fetchAiringSchedules(ids);
     }
-
+    
+   const schedules = cachedSchedules;
+    myListContainer.innerHTML = '';
+  
     // طراحی کنترلر ناوبری < Today > [1]
     const paginationContainer = document.createElement('div');
     paginationContainer.style.cssText = 'display: flex; gap: 10px; margin-bottom: 2px; grid-column: 1 / -1; justify-content: center; align-items: center;';
@@ -761,6 +761,7 @@ window.saveKeywords = function(index) {
 
 window.removeFromMyList = function(index) {
     mySavedList.splice(index, 1);
+    cachedSchedules = null;
     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
     renderMySavedList();
 };
@@ -865,6 +866,7 @@ importFileInput.onchange = function(e) {
             if (Array.isArray(importedData)) {
                 if (confirm(`Import ${importedData.length} items? This will replace your current list.`)) {
                     mySavedList = importedData;
+                    cachedSchedules = null;
                     localStorage.setItem('mySmartAnimeList', JSON.stringify(mySavedList));
                     renderMySavedList();
                     log("List imported successfully.", "success");
