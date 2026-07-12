@@ -640,3 +640,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     align-items: center;
     gap: 5px;
 }
+
+.github-footer-link:hover {
+    color: var(--primary) !important;
+}
