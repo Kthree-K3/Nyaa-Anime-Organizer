@@ -405,7 +405,6 @@ async function fetchAiringSchedules(ids) {
         
         if (json?.data?.Page?.media) {
             json.data.Page.media.forEach(anime => {
-                // ثبت دقیق پکیج کامل پخش‌های آینده و گذشته [1]
                 schedules[anime.id] = {
                     next: anime.nextAiringEpisode || null,
                     past: anime.airingSchedule?.nodes || []
@@ -415,7 +414,7 @@ async function fetchAiringSchedules(ids) {
         return schedules;
     } catch (e) {
         console.warn("Could not fetch schedules, falling back to standard view:", e);
-        return {}; 
+        return null; 
     }
 }
 
@@ -507,15 +506,18 @@ async function renderMySavedList() {
     const ids = mySavedList.map(item => item.id);
     
     
- if (!cachedSchedules) {
+    if (!cachedSchedules && ids.length > 0) {
         myListContainer.innerHTML = '<div style="color:gray; text-align:center; padding:20px;"><i class="fas fa-spinner spinning"></i> Loading schedules...</div>';
-        cachedSchedules = await fetchAiringSchedules(ids);
+        const fetchedResult = await fetchAiringSchedules(ids);
+        
+        if (fetchedResult !== null) {
+            cachedSchedules = fetchedResult; 
+        }
     }
     
-   const schedules = cachedSchedules;
+    const schedules = cachedSchedules || {};
     myListContainer.innerHTML = '';
   
-    // طراحی کنترلر ناوبری < Today > [1]
     const paginationContainer = document.createElement('div');
     paginationContainer.style.cssText = 'display: flex; gap: 10px; margin-bottom: 2px; grid-column: 1 / -1; justify-content: center; align-items: center;';
     
