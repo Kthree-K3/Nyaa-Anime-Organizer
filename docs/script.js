@@ -1162,7 +1162,7 @@ function renderUI() {
     allGroups.forEach((g, i) => {
         let isAiringToday = false;
         if (g.watchlistId && cachedSchedules && cachedSchedules[g.watchlistId]) {
-            isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], 0);
+            isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], -1);
         }
         const titleStyle = isAiringToday ? 'style="color: #22c55e;"' : '';
 
