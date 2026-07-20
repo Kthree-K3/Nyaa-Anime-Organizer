@@ -899,11 +899,10 @@ function resetScanUI() {
 }
 
 async function startScanner() {
-    // ۱. اگر در حال اسکن بود، بلافاصله ظاهر را ریست کن و درخواست را قطع کن
     if (isScanning) { 
         log("Stopping scan immediately...", "error"); 
         if (scanAbortController) scanAbortController.abort(); 
-        resetScanUI(); // ریست آنی ظاهر دکمه بدون معطلی
+        resetScanUI();
         return; 
     }
 
@@ -912,7 +911,6 @@ async function startScanner() {
     
     const rangeMode = document.getElementById('dateRange').value;
     
-    // تنظیمات ظاهری شروع اسکن
     btnScan.disabled = false;
     searchInput.disabled = true;
     btnIcon.classList.add('spinning');
@@ -931,6 +929,18 @@ async function startScanner() {
     else if (rangeMode === '7d') { cutoffDate.setDate(cutoffDate.getDate() - 6); cutoffDate.setHours(0, 0, 0, 0); }
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
+
+    if (!cachedSchedules && mySavedList.length > 0) {
+        try {
+            const ids = mySavedList.map(item => item.id);
+            const fetchedResult = await fetchAiringSchedules(ids);
+            if (fetchedResult !== null) {
+                cachedSchedules = fetchedResult;
+            }
+        } catch (err) {
+            
+        }
+    }
 
     allFetchedData = []; 
     let page = 1;
@@ -998,7 +1008,6 @@ async function startScanner() {
             if (!keepScanning || !isScanning) break;
             page++;
             
-            // وقفه ۱.۲ ثانیه‌ای قابل قطع شدن
             await new Promise((resolve, reject) => {
                 const t = setTimeout(resolve, 1200);
                 if (scanAbortController) {
@@ -1020,7 +1029,6 @@ async function startScanner() {
             log(`Error: ${e.message}`, 'error');
         }
     } finally {
-        // ریست نهایی برای اطمینان در صورت اتمام طبیعی اسکن
         resetScanUI();
     }
 }
@@ -1152,32 +1160,33 @@ function updateSortBarUI(idx) {
 function renderUI() {
     grid.innerHTML = '';
     allGroups.forEach((g, i) => {
+        let isAiringToday = false;
+        if (g.watchlistId && cachedSchedules && cachedSchedules[g.watchlistId]) {
+            isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], 0);
+        }
+        const titleStyle = isAiringToday ? 'style="color: #22c55e;"' : '';
+
         const card = document.createElement('div');
         card.className = 'anime-card';
         card.setAttribute('data-title', g.name);
         card.innerHTML = `
             <div class="anime-header" onclick="toggleCard(${i})">
-                <span class="anime-title">${g.name}</span>
+                <span class="anime-title" ${titleStyle}>${g.name}</span>
                 <div style="display:flex; align-items:center; gap:5px">
                     <span class="badge" style="margin-right:5px">${g.items.length} Files</span>
                     
-                    <!-- دکمه انی‌لیست -->
                     <button class="header-icon-btn" title="View on AniList" onclick="event.stopPropagation(); openAnimeInfo(${i})">
                         <img src="favicon-anilist.png" alt="AL">
                     </button>
 
-                    <!-- دکمه جدید MAL -->
                     <button class="header-icon-btn" title="Search MAL" onclick="event.stopPropagation(); window.open('https://myanimelist.net/anime.php?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon-mal.ico" alt="MAL">
                     </button>
 
-                    
-                    <!-- دکمه جدید Nyaa -->
                     <button class="header-icon-btn" title="Search Nyaa.si" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon.ico" alt="N">
                     </button>
 
-                     <!-- دکمه گوگل -->
                     <button class="header-icon-btn" title="Search Google" onclick="event.stopPropagation(); window.open('https://www.google.com/search?q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}'), '_blank')">
                         <img src="https://www.gstatic.com/images/branding/searchlogo/ico/favicon.ico" alt="G">
                     </button>
