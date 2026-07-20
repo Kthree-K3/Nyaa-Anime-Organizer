@@ -1172,7 +1172,7 @@ function renderUI() {
         if (g.watchlistId && cachedSchedules && cachedSchedules[g.watchlistId]) {
             isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], 0);
         }
-        const titleStyle = isAiringToday ? 'style="color: #89e9ac;"' : '';
+        const titleStyle = isAiringToday ? 'style="color: #4ADE80;"' : '';
 
         const card = document.createElement('div');
         card.className = 'anime-card';
