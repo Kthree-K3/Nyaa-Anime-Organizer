@@ -930,15 +930,23 @@ async function startScanner() {
 
     log(`Initializing scan. Cutoff: ${cutoffDate.toLocaleString()}`, 'info');
 
-    if (!cachedSchedules && mySavedList.length > 0) {
-        try {
-            const ids = mySavedList.map(item => item.id);
-            const fetchedResult = await fetchAiringSchedules(ids);
-            if (fetchedResult !== null) {
-                cachedSchedules = fetchedResult;
+    if (mySavedList.length > 0) {
+        if (!cachedSchedules) {
+            log("Caching watchlist airing schedules...", "info");
+            try {
+                const ids = mySavedList.map(item => item.id);
+                const fetchedResult = await fetchAiringSchedules(ids);
+                if (fetchedResult !== null) {
+                    cachedSchedules = fetchedResult;
+                    log("Watchlist schedules cached successfully.", "success");
+                } else {
+                    log("Failed to cache watchlist schedules.", "error");
+                }
+            } catch (err) {
+                log("Failed to cache watchlist schedules.", "error");
             }
-        } catch (err) {
-            
+        } else {
+            log("Using cached watchlist schedules.", "info");
         }
     }
 
@@ -1162,9 +1170,9 @@ function renderUI() {
     allGroups.forEach((g, i) => {
         let isAiringToday = false;
         if (g.watchlistId && cachedSchedules && cachedSchedules[g.watchlistId]) {
-            isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], -1);
+            isAiringToday = isAiringOnOffsetDayInTehran(g.watchlistId, cachedSchedules[g.watchlistId], 0);
         }
-        const titleStyle = isAiringToday ? 'style="color: #22c55e;"' : '';
+        const titleStyle = isAiringToday ? 'style="color: #89e9ac;"' : '';
 
         const card = document.createElement('div');
         card.className = 'anime-card';
