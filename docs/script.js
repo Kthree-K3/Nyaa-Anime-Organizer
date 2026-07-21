@@ -965,6 +965,10 @@ async function startScanner() {
             
             const htmlText = await response.text();
             if (!isScanning) break;
+            
+            if (htmlText.includes("Proxy request failed")) {
+                throw new Error("Nyaa Proxy request failed");
+            }
 
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlText, 'text/html');
