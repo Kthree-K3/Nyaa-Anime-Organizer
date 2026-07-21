@@ -955,6 +955,7 @@ async function startScanner() {
     let keepScanning = true;
 
     try {
+        log("Checking Nyaa...", "info");
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
             
@@ -1025,6 +1026,113 @@ async function startScanner() {
                     });
                 }
             });
+        }
+
+               if (isScanning) {
+            log("Checking Onalrie...", "info");
+            try {
+                let onalriePage = 0;
+                let keepScanningOnalrie = true;
+                const ONALRIE_WORKER_URL = "https://onalrie.khalilkhko.workers.dev";
+
+                while (keepScanningOnalrie && isScanning) {
+                    log(`Fetching Onalrie page ${onalriePage}...`);
+                    
+                    const response = await fetch(`${ONALRIE_WORKER_URL}/?page=${onalriePage}`, {
+                        signal: scanAbortController.signal
+                    });
+                    
+                    const textData = await response.text();
+                    if (!isScanning) break;
+
+                    
+                    const parser = new DOMParser();
+                    const wrappedHtml = `<table><tbody>${textData}</tbody></table>`;
+                    const doc = parser.parseFromString(wrappedHtml, 'text/html');
+                    const rows = doc.querySelectorAll('tr');
+                    let matchCount = 0;
+
+                    for (let tr of rows) {
+                        const tds = tr.querySelectorAll('td');
+                        if (tds.length < 9) continue; 
+
+                        // ۱. استخراج عنوان و لینک تورنت
+                        const titleEl = tds[0].querySelector('a');
+                        if (!titleEl) continue;
+                        const rawTitle = titleEl.textContent.trim();
+                        const relativeLink = titleEl.getAttribute('href') || '';
+                        const torrentLink = "https://onalrie.app" + relativeLink;
+
+                        // ۲. استخراج تاریخ رسمی پخش تورنت (datetime)
+                        const timeEl = tds[2].querySelector('time');
+                        const dateStr = timeEl ? timeEl.getAttribute('datetime') : '';
+                        if (!dateStr) continue;
+                        const itemDate = new Date(dateStr);
+
+                        if (itemDate < cutoffDate) {
+                            keepScanningOnalrie = false;
+                            continue;
+                        }
+
+                        matchCount++;
+
+                        // ۳. استخراج حجم فایل
+                        const sizeStr = tds[3].textContent.trim();
+
+                        // ۴. استخراج مقادیر سید و پیر
+                        const seeds = tds[5].textContent.trim();
+                        const peers = tds[6].textContent.trim();
+
+                        // ۵. استخراج لینک مگنت
+                        const magnetEl = tds[8].querySelector('a.magnet');
+                        const magnetLink = magnetEl ? magnetEl.getAttribute('href') : '';
+                        if (!magnetLink) continue;
+
+                        let matchedId = null;
+                        if (mySavedList.length > 0) {
+                            const matchedAnime = mySavedList.find(anime => {
+                                const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
+                                return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), cleanTitle(keyword)) > SIMILARITY_THRESHOLD);
+                            });
+                            if (matchedAnime) matchedId = matchedAnime.id;
+                        }
+
+                        allFetchedData.push({
+                            rawTitle,
+                            cleanName: cleanTitle(rawTitle),
+                            watchlistId: matchedId,
+                            link: torrentLink,
+                            magnet: magnetLink,
+                            size: sizeStr,
+                            sizeBytes: sizeToBytes(sizeStr),
+                            date: itemDate.toLocaleString('sv').substring(0, 16),
+                            fullDate: itemDate,
+                            status: 'normal',
+                            seeds: seeds,
+                            peers: peers
+                        });
+                    }
+
+                    log(`Onalrie Page ${onalriePage}: Done. Found ${matchCount} items.`, 'success');
+                    if (matchCount === 0 || !keepScanningOnalrie || !isScanning) break;
+                    onalriePage++;
+
+                    await new Promise((resolve, reject) => {
+                        const t = setTimeout(resolve, 1200);
+                        if (scanAbortController) {
+                            scanAbortController.signal.addEventListener('abort', () => {
+                                clearTimeout(t);
+                                reject(new Error('AbortError'));
+                            });
+                        }
+                    });
+                }
+            } catch (err) {
+                if (err.name === 'AbortError' || err.message === 'AbortError') {
+                    throw err;
+                }
+                log(`Onalrie scan failed (${err.message}). Showing Nyaa results only.`, "error");
+            }
         }
         
         refreshData();
@@ -1119,6 +1227,7 @@ function organizeGroups(data) {
 
         // نام گروه می‌شود همان نامی که بیشترین تکرار را داشته
         group.name = bestName;
+        group.items.sort((a, b) => b.fullDate - a.fullDate);
     });
 
     // مرتب‌سازی گروه‌ها بر اساس تاریخ جدیدترین آیتم
@@ -1191,6 +1300,10 @@ function renderUI() {
                         <img src="favicon-mal.ico" alt="MAL">
                     </button>
 
+                    <button class="header-icon-btn" title="Search AniDB" onclick="event.stopPropagation(); window.open('https://anidb.net/anime/?adb.search=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+') + '&do.search=1', '_blank')">
+                        <img src="favicon-anidb.ico" alt="ADB">
+                    </button>
+
                     <button class="header-icon-btn" title="Search Nyaa.si" onclick="event.stopPropagation(); window.open('${TARGET_DOMAIN}/?f=0&c=1_2&q=' + encodeURIComponent('${g.name.replace(/'/g, "\\'")}').replace(/%20/g, '+'), '_blank')">
                         <img src="favicon.ico" alt="N">
                     </button>
@@ -1252,8 +1365,14 @@ function renderGroupList(idx) {
 function renderEpisodeItems(items) {
     if (items.length === 0) return '<div style="padding:20px; text-align:center; color:var(--text-dim)">No items found.</div>';
     
-    return items.map(item => `
-        <div class="episode-item is-${item.status}">
+    return items.map(item => {
+        // تعریف متغیرها خارج از قالب متنی برای دسترسی صحیح موتور جاوااسکریپت
+        const isOnalrie = item.link.includes('onalrie.app');
+        const siteName = isOnalrie ? 'Onalrie' : 'Nyaa.si';
+         const extraStyle = isOnalrie ? 'style="border-left: 4px solid rgba(118, 91, 192, 1); background-color: rgba(67, 59, 89, 0.25);"' : '';
+        
+        return `
+        <div class="episode-item is-${item.status}" ${extraStyle}>
             <div class="ep-info">
                 <span class="ep-raw-title" onclick="this.classList.toggle('full-text')" title="${item.rawTitle}">${item.rawTitle}</span>
                 <div class="ep-meta">
@@ -1270,10 +1389,13 @@ function renderEpisodeItems(items) {
                  </span>
                  ${item.magnet ? `<a href="${item.magnet}" class="btn-magnet" title="Magnet Link"><i class="fas fa-magnet"></i></a>` : ''}
                  <a href="${item.link}" target="_blank" class="btn-link" style="display: none;" title="Nyaa Proxy"><i class="fas fa-external-link-alt"></i> Nyaa Proxy</a>
-                 <a href="${item.link}" target="_blank" class="btn-link" title="Nyaa Link"><i class="fas fa-external-link-alt"></i> Nyaa.si</a>
+                 <a href="${item.link}" target="_blank" class="btn-link" title="${siteName} Link">
+                     <i class="fas fa-external-link-alt"></i> ${siteName}
+                 </a>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function toggleCard(id) {
