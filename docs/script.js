@@ -133,6 +133,10 @@ function cleanTitle(raw) {
     let name = raw.trim();
     name = name.replace(/\.(mkv|mp4|avi|ts|zip|rar|wmv|3gp|flv|m2ts)$/i, '');
     name = name.replace(/\[.*?\]/g, '');
+    const yearMatch = name.match(/\s?\(\d{4}\)/);
+    if (yearMatch) {
+        name = name.substring(0, yearMatch.index); 
+    }
     name = name.replace(/\s?\(.*?\)\s?/g, ' ');
     name = name.replace(/[._]/g, ' ');
     const stopMarkers = [
