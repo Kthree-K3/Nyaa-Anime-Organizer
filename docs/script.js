@@ -162,7 +162,7 @@ function cleanTitle(raw) {
         if (match && match.index < firstMatchIndex) firstMatchIndex = match.index;
     });
     name = name.substring(0, firstMatchIndex).trim();
-    return name.replace(/[:\-~,\s]+$/, '').trim() || "Unknown";
+    return name.replace(/^[:\-~,_\s]+|[:\-~,_\s]+$/g, '').trim() || "Unknown";
 }
 
 function sizeToBytes(sizeStr) {
