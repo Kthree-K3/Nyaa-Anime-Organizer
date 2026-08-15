@@ -1,5 +1,5 @@
 // ================= تنظیمات اصلی ==================
-const MY_WORKER_URL = "https://nyaa.khalilkhko.qzz.io";
+const MY_WORKER_URL = "https://nyaa.khalilkhko.of.to";
 const TARGET_DOMAIN = "https://nyaa.si";  
 
 const SIMILARITY_THRESHOLD = 0.8; 
@@ -1041,7 +1041,7 @@ async function startScanner() {
             try {
                 let onalriePage = 0;
                 let keepScanningOnalrie = true;
-                const ONALRIE_WORKER_URL = "https://onalrie.khalilkhko.qzz.io";
+                const ONALRIE_WORKER_URL = "https://onalrie.khalilkhko.of.to";
 
                 while (keepScanningOnalrie && isScanning) {
                     log(`Fetching Onalrie page ${onalriePage}...`);
