@@ -809,7 +809,7 @@ async function searchAniListForAdd(query) {
             div.className = 'add-item-row';
             const engTitle = anime.title.english || "";
             div.innerHTML = `
-                <img src="${anime.coverImage.medium}" class="add-item-img">
+                <img src="${anime.coverImage.medium.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to')}" class="add-item-img">
                 <div class="add-item-info-search">
                     <span class="add-item-romaji">${anime.title.romaji}</span>
                     <span class="add-item-english">${engTitle}</span>
@@ -820,7 +820,7 @@ async function searchAniListForAdd(query) {
                     id: anime.id,
                     english: anime.title.english || "",
                     romaji: anime.title.romaji,
-                    cover: anime.coverImage.medium
+                    cover: anime.coverImage.medium.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to')
                 });
                 myListSearchInput.value = '';
                 myListSearchResults.style.display = 'none';
@@ -1531,10 +1531,10 @@ window.showAniListDetails = function(index) {
     const anime = currentAniListResults[index];
     const romaji = anime.title.romaji || 'Unknown Title';
     const english = anime.title.english || "";
-    const img = anime.coverImage.large;
+    const img = anime.coverImage.large.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to');
     
     const bannerStyle = anime.bannerImage 
-        ? `background-image: url('${anime.bannerImage}');` 
+        ? `background-image: url('${anime.bannerImage.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to')}');` 
         : `background: linear-gradient(45deg, #334155, #0f172a);`;
 
     const desc = anime.description ? anime.description.replace(/<br><br>/g, '<br>').replace(/<[^>]+>/g, '') : 'No description available.';
@@ -1614,7 +1614,7 @@ window.renderAniListResults = function() {
         const english = anime.title.english || "";
         const year = anime.seasonYear || 'N/A';
         const format = anime.format || 'TV';
-        const img = anime.coverImage.large;
+        const img = anime.coverImage.large.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to');
 
         return `
             <div class="anilist-result-item" onclick="showAniListDetails(${index})">
