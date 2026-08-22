@@ -187,7 +187,7 @@ function getSimilarity(s1, s2) {
 
 function proxyAniListImage(url) {
     if (!url) return '';
-    return url.replace('https://s4.anilist.co', 'https://img-anilist.khalilkhko.of.to');
+   // return url.replace('https://s4.anilist.co', 'https://img-graphql.anilist.co');
 }
 
 // ================= عملیات اسکن اصلی =================
@@ -401,7 +401,7 @@ async function fetchAiringSchedules(ids) {
     }`;
 
     try {
-        const res = await fetch('https://anilist.khalilkhko.of.to/api/graphql', {
+        const res = await fetch('https://graphql.anilist.co/api/graphql', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query, variables: { ids } })
@@ -796,7 +796,7 @@ async function searchAniListForAdd(query) {
     const gql = `query ($s: String, $sort: [MediaSort]) { Page(perPage: 10) { media(search: $s, type: ANIME, sort: $sort) { id title { romaji english } coverImage { medium } } } }`;
     
     try {
-        const res = await fetch('https://anilist.khalilkhko.of.to/api/graphql', {
+        const res = await fetch('https://graphql.anilist.co/api/graphql', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ query: gql, variables: { s: query, sort: sortValue } })
@@ -1510,7 +1510,7 @@ async function searchAniList(searchQuery) {
     }`;
 
     const variables = { search: searchQuery, sort: sortValue };
-    const url = 'https://anilist.khalilkhko.of.to/api/graphql';
+    const url = 'https://graphql.anilist.co/api/graphql';
     const options = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -1660,7 +1660,7 @@ window.openAnimeInfoById = async function(id) {
     }`;
 
     try {
-        const response = await fetch('https://anilist.khalilkhko.of.to/api/graphql', {
+        const response = await fetch('https://graphql.anilist.co/api/graphql', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             body: JSON.stringify({ query, variables: { id: id } })
