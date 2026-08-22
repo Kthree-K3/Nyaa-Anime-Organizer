@@ -185,10 +185,6 @@ function getSimilarity(s1, s2) {
     return (2 * inter) / (p1.size + p2.size);
 }
 
-function proxyAniListImage(url) {
-    if (!url) return '';
-   // return url.replace('https://s4.anilist.co', 'https://img-graphql.anilist.co');
-}
 
 // ================= عملیات اسکن اصلی =================
 btnScan.onclick = startScanner;
@@ -717,7 +713,7 @@ function createSavedItemCard(item, index, isOnTargetDay) {
     }
 
     div.innerHTML = `
-        <img src="${proxyAniListImage(item.cover)}" onclick="openAnimeInfoById(${item.id})" title="View Details">
+        <img src="${item.cover}" onclick="openAnimeInfoById(${item.id})" title="View Details">
         <div class="saved-item-info" style="display:flex; flex-direction:column; flex:1; justify-content: center; gap: 4px;">
             <span class="saved-item-title" onclick="openAnimeInfoById(${item.id})">${item.romaji}</span>
             ${airingBadge}
@@ -814,7 +810,7 @@ async function searchAniListForAdd(query) {
             div.className = 'add-item-row';
             const engTitle = anime.title.english || "";
             div.innerHTML = `
-                <img src="${proxyAniListImage(anime.coverImage.medium)}" class="add-item-img">
+                <img src="${anime.coverImage.medium}" class="add-item-img">
                 <div class="add-item-info-search">
                     <span class="add-item-romaji">${anime.title.romaji}</span>
                     <span class="add-item-english">${engTitle}</span>
@@ -825,7 +821,7 @@ async function searchAniListForAdd(query) {
                     id: anime.id,
                     english: anime.title.english || "",
                     romaji: anime.title.romaji,
-                    cover: proxyAniListImage(anime.coverImage.medium)
+                    cover: anime.coverImage.medium
                 });
                 myListSearchInput.value = '';
                 myListSearchResults.style.display = 'none';
@@ -1536,10 +1532,10 @@ window.showAniListDetails = function(index) {
     const anime = currentAniListResults[index];
     const romaji = anime.title.romaji || 'Unknown Title';
     const english = anime.title.english || "";
-    const img = proxyAniListImage(anime.coverImage.large);
+    const img = anime.coverImage.large;
     
     const bannerStyle = anime.bannerImage 
-    ? `background-image: url('${proxyAniListImage(anime.bannerImage)}');` 
+    ? `background-image: url('${anime.bannerImage}');` 
     : `background: linear-gradient(45deg, #334155, #0f172a);`;
 
     const desc = anime.description ? anime.description.replace(/<br><br>/g, '<br>').replace(/<[^>]+>/g, '') : 'No description available.';
@@ -1619,7 +1615,7 @@ window.renderAniListResults = function() {
         const english = anime.title.english || "";
         const year = anime.seasonYear || 'N/A';
         const format = anime.format || 'TV';
-        const img = proxyAniListImage(anime.coverImage.large);
+        const img = anime.coverImage.large;
 
         return `
             <div class="anilist-result-item" onclick="showAniListDetails(${index})">
