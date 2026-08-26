@@ -1582,6 +1582,17 @@ window.showAniListDetails = function(index) {
                         </a>
                         <div class="anilist-sub-title">${english}</div>
                     </div>
+
+                    ${(() => {
+                            let btns = '';
+                            if (romaji && romaji !== 'Unknown Title') {
+                                btns += `<a href="${TARGET_DOMAIN}/?f=0&c=1_2&q=${encodeURIComponent(romaji).replace(/%20/g, '+')}" target="_blank" class="sort-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; padding:4px 10px; border-radius:6px; background:rgba(148, 163, 184, 0.1);" title="Search Romaji on Nyaa"><img src="favicon.ico" style="width:14px; height:14px;"> Nyaa (Romaji)</a>`;
+                            }
+                            if (english && english.trim() !== '') {
+                                btns += `<a href="${TARGET_DOMAIN}/?f=0&c=1_2&q=${encodeURIComponent(english).replace(/%20/g, '+')}" target="_blank" class="sort-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; padding:4px 10px; border-radius:6px; background:rgba(148, 163, 184, 0.1);" title="Search English on Nyaa"><img src="favicon.ico" style="width:14px; height:14px;"> Nyaa (English)</a>`;
+                            }
+                            return btns ? `<div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin: 6px 0 8px 0;">${btns}</div>` : '';
+                        })()}
                     
                      <div class="anilist-badges-row" style="justify-content: center; margin-bottom: 5px;">
                         <span class="stat-tag"><i class="fas fa-star" style="color:#eab308"></i> ${score}</span>
