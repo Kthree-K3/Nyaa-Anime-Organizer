@@ -964,11 +964,8 @@ async function startScanner() {
         while (keepScanning && isScanning) {
             log(`Fetching page ${page}...`);
             
-            const response = await fetch(`${MY_WORKER_URL}/?c=1_2&p=${page}`, {
-                signal: scanAbortController.signal,
-                 headers: {
-                     'x-proxy-auth': 'Khko_Secure_2026'
-                     }
+            const response = await fetch(`${MY_WORKER_URL}/?c=1_2&p=${page}&auth=Khko_Secure_2026`, {
+               signal: scanAbortController.signal
             });
             
             const htmlText = await response.text();
