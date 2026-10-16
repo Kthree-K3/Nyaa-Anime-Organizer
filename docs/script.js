@@ -901,6 +901,7 @@ function resetScanUI() {
     btnIcon.classList.remove('spinning');
     btnText.innerText = "Start scanning";
     searchInput.disabled = false;
+    myListFilter.disabled = false;
 }
 
 async function startScanner() {
@@ -918,6 +919,7 @@ async function startScanner() {
     
     btnScan.disabled = false;
     searchInput.disabled = true;
+    myListFilter.disabled = true;
     btnIcon.classList.add('spinning');
     btnText.innerText = "Stop scanning";
     btnScan.classList.add('btn-danger');
@@ -1351,6 +1353,7 @@ function renderUI() {
         grid.appendChild(card);
         updateSortBarUI(i);
     });
+     if (searchInput.value.trim()) searchInput.dispatchEvent(new Event('input'));
 }
 
 
