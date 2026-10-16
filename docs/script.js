@@ -1586,10 +1586,18 @@ window.showAniListDetails = function(index) {
                         <div class="anilist-sub-title">${english}</div>
                     </div>
 
-                       ${(romaji && romaji !== 'Unknown Title') ? `
-                        <div style="display:flex; justify-content:center; margin-top: 6px;">
-                            <a href="https://myanimelist.net/anime.php?q=${encodeURIComponent(romaji).replace(/%20/g, '+')}" target="_blank" class="sort-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:0.75rem; padding:4px 12px; border-radius:6px; background:rgba(148, 163, 184, 0.1);" title="Search Romaji on MyAnimeList">
-                                <img src="favicon-mal.ico" style="width:14px; height:14px;"> Search on MAL
+                        ${(romaji && romaji !== 'Unknown Title') ? `
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 6px;">
+                            <a href="https://myanimelist.net/anime.php?q=${encodeURIComponent(romaji).replace(/%20/g, '+')}" target="_blank" class="header-icon-btn" title="Search MAL">
+                                <img src="favicon-mal.ico" alt="MAL">
+                            </a>
+
+                            <a href="https://anidb.net/anime/?adb.search=${encodeURIComponent(romaji).replace(/%20/g, '+')}&do.search=1" target="_blank" class="header-icon-btn" title="Search AniDB">
+                                <img src="favicon-anidb.ico" alt="ADB">
+                            </a>
+
+                            <a href="https://www.google.com/search?q=${encodeURIComponent(romaji)}" target="_blank" class="header-icon-btn" title="Search Google">
+                                <img src="https://www.gstatic.com/images/branding/searchlogo/ico/favicon.ico" alt="G">
                             </a>
                         </div>
                     ` : ''}
