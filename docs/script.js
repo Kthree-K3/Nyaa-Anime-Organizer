@@ -2,7 +2,7 @@
 const MY_WORKER_URL = "https://nyaa.khalilkhko.of.to";
 const TARGET_DOMAIN = "https://nyaa.si";  
 
-const SIMILARITY_THRESHOLD = 0.8; 
+const SIMILARITY_THRESHOLD = 0.75; 
 let allGroups = []; 
 let isScanning = false;
 let allFetchedData = [];
@@ -1000,7 +1000,7 @@ async function startScanner() {
                 if (mySavedList.length > 0) {
                     const matchedAnime = mySavedList.find(anime => {
                         const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-                        return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), cleanTitle(keyword)) > SIMILARITY_THRESHOLD);
+                        return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), keyword.trim()) > SIMILARITY_THRESHOLD);
                     });
                     if (matchedAnime) matchedId = matchedAnime.id;
                 }
@@ -1101,7 +1101,7 @@ async function startScanner() {
                         if (mySavedList.length > 0) {
                             const matchedAnime = mySavedList.find(anime => {
                                 const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-                                return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), cleanTitle(keyword)) > SIMILARITY_THRESHOLD);
+                                return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), keyword.trim()) > SIMILARITY_THRESHOLD);
                             });
                             if (matchedAnime) matchedId = matchedAnime.id;
                         }
