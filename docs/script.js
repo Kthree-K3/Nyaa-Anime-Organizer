@@ -1002,7 +1002,7 @@ async function startScanner() {
                 if (mySavedList.length > 0) {
                     const matchedAnime = mySavedList.find(anime => {
                         const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-                        return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), keyword.trim()) > SIMILARITY_THRESHOLD);
+                        return keywordList.some(keyword => cleanTitle(rawTitle).toLowerCase().includes(keyword.trim()));
                     });
                     if (matchedAnime) matchedId = matchedAnime.id;
                 }
@@ -1103,7 +1103,7 @@ async function startScanner() {
                         if (mySavedList.length > 0) {
                             const matchedAnime = mySavedList.find(anime => {
                                 const keywordList = anime.keywords.toLowerCase().split('\n').filter(k => k.trim() !== "");
-                                return keywordList.some(keyword => getSimilarity(cleanTitle(rawTitle), keyword.trim()) > SIMILARITY_THRESHOLD);
+                                return keywordList.some(keyword => cleanTitle(rawTitle).toLowerCase().includes(keyword.trim()));
                             });
                             if (matchedAnime) matchedId = matchedAnime.id;
                         }
